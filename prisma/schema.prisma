@@ -1,0 +1,51 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Location {
+  id         Int      @id @default(autoincrement())
+  category   String
+  detailInfo String   @map("detail_info")
+  extraInfo  String?  @map("extra_info")
+  x          Float
+  y          Float
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("locations")
+}
+
+model RoadNode {
+  id         Int        @id @default(autoincrement())
+  x          Float
+  y          Float
+  edgesFrom  RoadEdge[] @relation("FromNode")
+  edgesTo    RoadEdge[] @relation("ToNode")
+
+  @@map("road_nodes")
+}
+
+model RoadEdge {
+  id       Int      @id @default(autoincrement())
+  fromNode Int      @map("from_node")
+  toNode   Int      @map("to_node")
+  distance Float
+  from     RoadNode @relation("FromNode", fields: [fromNode], references: [id], onDelete: Cascade)
+  to       RoadNode @relation("ToNode", fields: [toNode], references: [id], onDelete: Cascade)
+
+  @@map("road_edges")
+}
+
+model AdminUser {
+  id           Int    @id @default(autoincrement())
+  username     String @unique
+  passwordHash String @map("password_hash")
+
+  @@map("admin_users")
+}
