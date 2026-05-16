@@ -5,9 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     domains: [],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['bcryptjs'],
-  },
+  serverExternalPackages: ['bcryptjs'],
 }
 
 export default nextConfig
