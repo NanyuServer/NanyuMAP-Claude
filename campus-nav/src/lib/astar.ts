@@ -202,12 +202,23 @@ export function astarFloorAware(
         adj.get(e.toNode)!.push({ to: e.fromNode, dist: e.distance, edgeId: e.id })
       }
       // 楼梯只能逐层上下：仅连接相邻楼层，禁止跳层
+      // 使用 stairwellFloor 确定每个节点实际所在的楼层
+      const fromFloorSA = a?.stairwellFloor
+      const toFloorSA = b?.stairwellFloor
       for (let i = 0; i < fPair.length - 1; i++) {
         const fA = fPair[i]
         const fB = fPair[i + 1]
         if (fB - fA !== 1) continue
-        floorTransitions.push({ fromFloor: fA, fromNode: e.fromNode, toNode: e.toNode, toFloor: fB, dist: e.distance, buildingCategory: null, roadType: 'staircase' })
-        floorTransitions.push({ fromFloor: fB, fromNode: e.toNode, toNode: e.fromNode, toFloor: fA, dist: e.distance, buildingCategory: null, roadType: 'staircase' })
+        let lowNode: number, highNode: number
+        if (fromFloorSA === fA && toFloorSA === fB) {
+          lowNode = e.fromNode; highNode = e.toNode
+        } else if (fromFloorSA === fB && toFloorSA === fA) {
+          lowNode = e.toNode; highNode = e.fromNode
+        } else {
+          lowNode = e.fromNode; highNode = e.toNode
+        }
+        floorTransitions.push({ fromFloor: fA, fromNode: lowNode, toNode: highNode, toFloor: fB, dist: e.distance, buildingCategory: null, roadType: 'staircase' })
+        floorTransitions.push({ fromFloor: fB, fromNode: highNode, toNode: lowNode, toFloor: fA, dist: e.distance, buildingCategory: null, roadType: 'staircase' })
       }
       continue
     }
@@ -240,13 +251,26 @@ export function astarFloorAware(
       }
 
       // 楼梯只能逐层上下：仅连接相邻楼层，禁止跳层（如 1↔3 直达）
+      // 使用 stairwellFloor 确定每个节点实际所在的楼层，避免因边方向任意导致楼层映射错误
       const sortedFloors = [...sFloors].sort((a, b) => a - b)
+      const fromFloorActual = fromNode?.stairwellFloor
+      const toFloorActual = toNodeData?.stairwellFloor
       for (let i = 0; i < sortedFloors.length - 1; i++) {
         const fA = sortedFloors[i]
         const fB = sortedFloors[i + 1]
         if (fB - fA !== 1) continue
-        floorTransitions.push({ fromFloor: fA, fromNode: e.fromNode, toNode: e.toNode, toFloor: fB, dist: adjustedDist, buildingCategory: bCat, roadType: rType })
-        floorTransitions.push({ fromFloor: fB, fromNode: e.toNode, toNode: e.fromNode, toFloor: fA, dist: adjustedDist, buildingCategory: bCat, roadType: rType })
+        // 根据节点实际楼层决定方向：哪个节点在 fA 就作为 fromNode，哪个在 fB 就作为 toNode
+        let lowNode: number, highNode: number
+        if (fromFloorActual === fA && toFloorActual === fB) {
+          lowNode = e.fromNode; highNode = e.toNode
+        } else if (fromFloorActual === fB && toFloorActual === fA) {
+          lowNode = e.toNode; highNode = e.fromNode
+        } else {
+          // 无法确定时回退到边方向
+          lowNode = e.fromNode; highNode = e.toNode
+        }
+        floorTransitions.push({ fromFloor: fA, fromNode: lowNode, toNode: highNode, toFloor: fB, dist: adjustedDist, buildingCategory: bCat, roadType: rType })
+        floorTransitions.push({ fromFloor: fB, fromNode: highNode, toNode: lowNode, toFloor: fA, dist: adjustedDist, buildingCategory: bCat, roadType: rType })
       }
 
       // 同层连接：slope 边本质是跨楼层连接；只有当两端点位于同一物理位置
