@@ -662,7 +662,7 @@ function NavigationEndpointLabels({
         pointerEvents: 'none',
       }}
     >
-      <div style={{ width: 10, height: 10, borderRadius: '50%', background: dotColor, border: '2px solid rgba(255,255,255,0.95)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', flexShrink: 0 }} />
+      <div style={{ width: 18, height: 18, borderRadius: '50%', background: dotColor, border: '3px solid rgba(255,255,255,0.95)', boxShadow: '0 2px 12px rgba(59,130,246,0.45), 0 0 0 4px rgba(59,130,246,0.12)', flexShrink: 0 }} />
       <div style={{ width: 0, height: 24, borderLeft: '1px dashed rgba(59,130,246,0.4)', margin: '3px 0', flexShrink: 0 }} />
       <div style={{ ...glassStyle, color, marginTop: overlap ? 3 : 0, marginBottom: overlap ? 0 : 3 }}>
         <div className="flex items-center gap-1.5">
@@ -854,8 +854,8 @@ function AboutScreen() {
 
           <button
             onClick={() => setShowFeedback(true)}
-            className="w-full py-3 rounded-2xl text-white text-sm font-semibold mb-7 flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg,#B394BF,#8F6FA8)', boxShadow: '0 8px 24px rgba(143,111,168,0.35)' }}
+            className="w-full py-3 rounded-2xl text-ink text-sm font-semibold mb-7 flex items-center justify-center gap-2"
+            style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: '0 8px 24px rgba(143,111,168,0.2), inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35)' }}
           >
             意见反馈
           </button>

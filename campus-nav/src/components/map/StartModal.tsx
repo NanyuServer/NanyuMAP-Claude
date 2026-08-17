@@ -140,8 +140,8 @@ export default function StartModal() {
           </div>
           <button
             onClick={() => { setShowStartModal(false); clearSearch() }}
-            style={{ background: 'rgba(0,0,0,0.04)', borderRadius: 10 }}
-            className="w-8 h-8 flex items-center justify-center hover:bg-neutral-100 transition-colors"
+            style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 10 }}
+            className="w-8 h-8 flex items-center justify-center hover:bg-white/50 transition-colors"
           >
             <X size={14} className="text-neutral-400" />
           </button>
@@ -166,11 +166,11 @@ export default function StartModal() {
             <p className="text-neutral-400 text-xs mb-2">导航策略</p>
             <div className="flex gap-2">
               <button onClick={() => setRouteMode('trunk')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium transition-all"
-                style={{ background: routeMode === 'trunk' ? 'rgba(245,158,11,0.12)' : 'rgba(0,0,0,0.04)', border: routeMode === 'trunk' ? '1px solid rgba(245,158,11,0.3)' : '1px solid transparent', color: routeMode === 'trunk' ? '#d97706' : '#737373' }}>
+                style={{ background: routeMode === 'trunk' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.35)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: routeMode === 'trunk' ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(255,255,255,0.3)', boxShadow: routeMode === 'trunk' ? 'inset 0 1px 0 rgba(255,255,255,0.8)' : 'none', color: routeMode === 'trunk' ? '#d97706' : '#737373' }}>
                 <Route size={13} />主干道路优先
               </button>
               <button onClick={() => setRouteMode('shortest')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-medium transition-all"
-                style={{ background: routeMode === 'shortest' ? 'rgba(59,130,246,0.12)' : 'rgba(0,0,0,0.04)', border: routeMode === 'shortest' ? '1px solid rgba(59,130,246,0.3)' : '1px solid transparent', color: routeMode === 'shortest' ? '#2563eb' : '#737373' }}>
+                style={{ background: routeMode === 'shortest' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.35)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: routeMode === 'shortest' ? '1px solid rgba(59,130,246,0.3)' : '1px solid rgba(255,255,255,0.3)', boxShadow: routeMode === 'shortest' ? 'inset 0 1px 0 rgba(255,255,255,0.8)' : 'none', color: routeMode === 'shortest' ? '#2563eb' : '#737373' }}>
                 <Zap size={13} />最近路线优先
               </button>
             </div>
@@ -187,8 +187,9 @@ export default function StartModal() {
                   </div>
                   <motion.button whileTap={{ scale: 0.98 }} onClick={() => handleStart(enabledPoints[0])} disabled={loading}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl transition-all"
-                    style={{ background: 'linear-gradient(135deg, #B394BF, #9A7DB8)', boxShadow: '0 4px 16px rgba(179,148,191,0.25)', opacity: loading ? 0.6 : 1 }}>
-                    <span className="text-white font-semibold text-[15px]">开始导航</span>
+                    style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: '0 4px 16px rgba(179,148,191,0.2), inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35)', opacity: loading ? 0.6 : 1 }}>
+                    <Navigation size={14} className="text-[#B394BF]" />
+                    <span className="text-ink font-semibold text-[15px]">开始导航</span>
                   </motion.button>
                 </div>
               ) : (
@@ -198,7 +199,7 @@ export default function StartModal() {
                     {enabledPoints.map(opt => (
                       <motion.button key={opt} whileTap={{ scale: 0.98 }} onClick={() => handleStart(opt)} disabled={loading}
                         className="w-full flex items-center gap-3 p-3.5 rounded-2xl transition-all"
-                        style={{ background: loading ? 'rgba(0,0,0,0.02)' : 'rgba(241,227,240,0.6)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 3px rgba(95,82,110,0.05)', opacity: loading ? 0.6 : 1 }}>
+                        style={{ background: loading ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35), 0 2px 8px rgba(95,82,110,0.06)', opacity: loading ? 0.6 : 1 }}>
                         <div style={{ background: 'rgba(179,148,191,0.14)', borderRadius: 12 }} className="w-9 h-9 flex items-center justify-center flex-shrink-0">
                           <Navigation size={15} className="text-ink/60" />
                         </div>
@@ -218,7 +219,7 @@ export default function StartModal() {
           {showCurrentLocation && (
             <motion.button whileTap={{ scale: 0.98 }} onClick={handleUseCurrentLocation} disabled={loading}
               className="w-full flex items-center gap-3 p-3.5 rounded-2xl transition-all"
-              style={{ background: loading ? 'rgba(0,0,0,0.02)' : 'rgba(59,130,246,0.06)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 3px rgba(0,0,0,0.04)', opacity: loading ? 0.6 : 1 }}>
+              style={{ background: loading ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35), 0 2px 8px rgba(59,130,246,0.06)', opacity: loading ? 0.6 : 1 }}>
               <div style={{ background: 'rgba(59,130,246,0.12)', borderRadius: 10 }} className="w-9 h-9 flex items-center justify-center flex-shrink-0">
                 <LocateFixed size={15} className="text-blue-500" />
               </div>
@@ -231,7 +232,7 @@ export default function StartModal() {
 
           {/* Map click option（由管理端“在地图上点击位置作为起点”开关控制） */}
           {campusSettings.allowClickStart !== false && (
-          <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(95,82,110,0.04)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 3px rgba(95,82,110,0.04)' }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35), 0 2px 8px rgba(95,82,110,0.06)' }}>
             <div className="p-3.5">
               <div className="flex items-center gap-3">
                 <div style={{ background: 'rgba(179,148,191,0.14)', borderRadius: 12 }} className="w-9 h-9 flex items-center justify-center flex-shrink-0">
@@ -248,17 +249,20 @@ export default function StartModal() {
                 <div className="mt-3">
                   <p className="text-neutral-400 text-xs mb-1.5">选择所在楼层</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {FLOOR_NUMBERS.map(f => (
-                      <button key={f} onClick={() => setPickFloor(f)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
-                        style={{
-                          background: pickFloor === f ? 'rgba(179,148,191,0.18)' : 'rgba(95,82,110,0.05)',
-                          border: pickFloor === f ? '1px solid rgba(179,148,191,0.5)' : '1px solid transparent',
-                          color: pickFloor === f ? '#5F526E' : '#737373',
-                        }}>
-                        {f}楼
-                      </button>
-                    ))}
+                      {FLOOR_NUMBERS.map(f => (
+                        <button key={f} onClick={() => setPickFloor(f)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+                          style={{
+                            background: pickFloor === f ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)',
+                            backdropFilter: 'blur(20px)',
+                            WebkitBackdropFilter: 'blur(20px)',
+                            border: pickFloor === f ? '1px solid rgba(179,148,191,0.5)' : '1px solid rgba(255,255,255,0.3)',
+                            boxShadow: pickFloor === f ? 'inset 0 1px 0 rgba(255,255,255,0.7)' : 'none',
+                            color: pickFloor === f ? '#5F526E' : '#737373',
+                          }}>
+                          {f}楼
+                        </button>
+                      ))}
                   </div>
                 </div>
               )}
@@ -268,8 +272,12 @@ export default function StartModal() {
                 disabled={campus === 'senior' && pickFloor == null}
                 className="w-full mt-3 py-2.5 rounded-2xl text-sm font-semibold transition-all"
                 style={{
-                  background: 'linear-gradient(135deg, #B394BF, #9A7DB8)',
-                  color: 'white',
+                  background: 'rgba(255,255,255,0.55)',
+                  backdropFilter: 'blur(50px) saturate(200%)',
+                  WebkitBackdropFilter: 'blur(50px) saturate(200%)',
+                  border: '1px solid rgba(255,255,255,0.45)',
+                  color: '#5F526E',
+                  boxShadow: '0 4px 16px rgba(179,148,191,0.2), inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35)',
                   opacity: campus === 'senior' && pickFloor == null ? 0.4 : 1,
                 }}
               >
@@ -302,7 +310,7 @@ export default function StartModal() {
 
           <button onClick={() => { setShowStartModal(false); clearSearch() }}
             className="w-full p-3 rounded-2xl text-neutral-400 font-medium text-[13px] hover:bg-white/30 transition-colors"
-            style={{ background: 'rgba(255,255,255,0.3)' }}>
+            style={{ background: 'rgba(255,255,255,0.35)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.3)' }}>
             取消
           </button>
         </div>

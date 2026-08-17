@@ -105,8 +105,8 @@ export default function FeedbackModal({ open, onClose }: FeedbackModalProps) {
                 </div>
                 <button
                   onClick={handleClose}
-                  className="w-full py-3 rounded-2xl text-white text-sm font-semibold"
-                  style={{ background: 'linear-gradient(135deg,#B394BF,#8F6FA8)' }}
+                  className="w-full py-3 rounded-2xl text-ink text-sm font-semibold"
+                  style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: '0 4px 16px rgba(179,148,191,0.2), inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35)' }}
                 >
                   完成
                 </button>
@@ -119,8 +119,9 @@ export default function FeedbackModal({ open, onClose }: FeedbackModalProps) {
                     <MessageSquare size={16} style={{ color: '#B394BF' }} />
                     <h2 className="font-seal text-ink font-semibold text-base">意见反馈</h2>
                   </div>
-                  <button onClick={handleClose} className="text-ink/30 hover:text-ink/60" aria-label="关闭">
-                    <X size={18} />
+                  <button onClick={handleClose} className="w-8 h-8 flex items-center justify-center rounded-xl text-ink/30 hover:text-ink/60 transition-colors" aria-label="关闭"
+                    style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.35)' }}>
+                    <X size={14} />
                   </button>
                 </div>
                 <p className="text-ink/45 text-xs mb-5">您的意见将帮助我们持续改进，欢迎提出宝贵建议。</p>
@@ -138,8 +139,11 @@ export default function FeedbackModal({ open, onClose }: FeedbackModalProps) {
                         onClick={() => setType(opt)}
                         className="px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all"
                         style={{
-                          background: type === opt ? 'rgba(179,148,191,0.18)' : 'rgba(255,255,255,0.55)',
-                          border: type === opt ? '1px solid rgba(179,148,191,0.6)' : '1px solid rgba(95,82,110,0.12)',
+                          background: type === opt ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.4)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
+                          border: type === opt ? '1px solid rgba(179,148,191,0.6)' : '1px solid rgba(255,255,255,0.35)',
+                          boxShadow: type === opt ? 'inset 0 1px 0 rgba(255,255,255,0.8)' : 'none',
                           color: type === opt ? '#5F526E' : 'rgba(95,82,110,0.65)',
                         }}
                       >
@@ -163,8 +167,10 @@ export default function FeedbackModal({ open, onClose }: FeedbackModalProps) {
                     maxLength={500}
                     className="w-full px-3.5 py-3 rounded-2xl text-ink text-[13px] leading-relaxed resize-none outline-none"
                     style={{
-                      background: 'rgba(255,255,255,0.6)',
-                      border: '1px solid rgba(95,82,110,0.14)',
+                      background: 'rgba(255,255,255,0.5)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
+                      border: '1px solid rgba(255,255,255,0.4)',
                       color: '#5F526E',
                     }}
                   />
@@ -184,8 +190,10 @@ export default function FeedbackModal({ open, onClose }: FeedbackModalProps) {
                     inputMode="numeric"
                     className="w-full px-3.5 py-2.5 rounded-2xl text-ink text-[13px] outline-none"
                     style={{
-                      background: 'rgba(255,255,255,0.6)',
-                      border: '1px solid rgba(95,82,110,0.14)',
+                      background: 'rgba(255,255,255,0.5)',
+                      backdropFilter: 'blur(30px)',
+                      WebkitBackdropFilter: 'blur(30px)',
+                      border: '1px solid rgba(255,255,255,0.4)',
                       color: '#5F526E',
                     }}
                   />
@@ -196,8 +204,8 @@ export default function FeedbackModal({ open, onClose }: FeedbackModalProps) {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="w-full py-3 rounded-2xl text-white text-sm font-semibold flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg,#B394BF,#8F6FA8)', opacity: submitting ? 0.6 : 1 }}
+                  className="w-full py-3 rounded-2xl text-ink text-sm font-semibold flex items-center justify-center gap-2"
+                  style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: '0 4px 16px rgba(179,148,191,0.2), inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35)', opacity: submitting ? 0.6 : 1 }}
                 >
                   {submitting && <Loader2 size={15} className="animate-spin" />}
                   {submitting ? '提交中…' : '提交反馈'}

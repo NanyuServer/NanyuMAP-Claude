@@ -176,11 +176,6 @@ export default function NavigationOverlay({ path, isMobile = false, mapScale = 1
 
   if (!path || path.length < 2) return null
 
-  const sx = path[0].x
-  const sy = path[0].y
-  const ex = path[path.length - 1].x
-  const ey = path[path.length - 1].y
-
   const getFloorLabel = (evt: { fromFloor: number; toFloor: number }) => {
     if (evt.toFloor > evt.fromFloor) {
       return evt.toFloor === 1 && !isSenior ? t.goUpstairs : isSenior ? t.upToFloorSenior(evt.toFloor) : t.upToFloor(evt.toFloor)
@@ -192,15 +187,6 @@ export default function NavigationOverlay({ path, isMobile = false, mapScale = 1
     <>
       <div ref={containerRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 5 }}>
         <canvas ref={canvasRef} className="absolute inset-0" />
-      </div>
-
-      {/* 起点/终点均显示蓝色圆点，无脉冲动画 */}
-      <div className="absolute pointer-events-none" style={{ left: `${sx}%`, top: `${sy}%`, transform: `translate(-50%, -50%) scale(${cs})`, zIndex: 10 }}>
-        <div style={{ width: 13, height: 13, borderRadius: '50%', background: '#3B82F6', border: '2.5px solid white', boxShadow: '0 2px 8px rgba(59,130,246,0.45), 0 0 0 3px rgba(59,130,246,0.15)' }} />
-      </div>
-
-      <div className="absolute pointer-events-none" style={{ left: `${ex}%`, top: `${ey}%`, transform: `translate(-50%, -50%) scale(${cs})`, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 15, height: 15, borderRadius: '50%', background: '#3B82F6', border: '2.5px solid white', boxShadow: '0 2px 10px rgba(59,130,246,0.5), 0 0 0 3px rgba(59,130,246,0.12)' }} />
       </div>
 
       {/* Staircase event markers — hidden when NavigationEndpoints handles them */}

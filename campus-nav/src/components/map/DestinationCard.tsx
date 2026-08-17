@@ -85,7 +85,7 @@ export default function DestinationCard({ destination, inline = false }: Destina
       initial={{ y: 80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 80, opacity: 0 }}
-      transition={{ duration: 0.3, ease: CUBIC_BEZIER, delay: 0.4 }}
+      transition={{ duration: 0.35, ease: CUBIC_BEZIER, delay: 1.2 }}
       className={inline
         ? "w-full z-40"
         : "absolute bottom-4 right-4 md:bottom-6 md:right-6 z-40 w-[calc(100%-2rem)] max-w-sm md:w-80"}
@@ -109,16 +109,15 @@ export default function DestinationCard({ destination, inline = false }: Destina
           }}
         />
 
-        <AnimatePresence initial={false} mode="popLayout">
+        <AnimatePresence initial={false}>
         {collapsed ? (
-          /* ── 收起态：只显示目的地，缩小卡片高度 ── */
+          /* ── 收起态 ── */
           <motion.div
             key="collapsed"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: CUBIC_BEZIER }}
-            style={{ overflow: 'hidden' }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.3, ease: CUBIC_BEZIER }}
           >
           <div className="p-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -149,11 +148,10 @@ export default function DestinationCard({ destination, inline = false }: Destina
           /* ── 展开态 ── */
           <motion.div
             key="expanded"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: CUBIC_BEZIER }}
-            style={{ overflow: 'hidden' }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.3, ease: CUBIC_BEZIER }}
           >
           <div className="p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -242,8 +240,8 @@ export default function DestinationCard({ destination, inline = false }: Destina
             <div className="flex items-center gap-2 mt-3">
               <button
                 onClick={clearNavigation}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-white text-[13px] font-semibold transition-all active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg,#B394BF,#8F6FA8)', boxShadow: '0 4px 14px rgba(143,111,168,0.3)' }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-ink text-[13px] font-semibold transition-all active:scale-[0.98]"
+                style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: '0 4px 14px rgba(143,111,168,0.2), inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35)' }}
               >
                 <X size={13} />
                 结束导航
