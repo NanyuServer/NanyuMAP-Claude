@@ -1,0 +1,218 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #F3EEF9;
+  --bg-secondary: #F3EEF9;
+  --bg-tertiary: #E9E1F5;
+  --glass-bg: rgba(241, 227, 240, 0.6);
+  --glass-border: rgba(95, 82, 110, 0.08);
+  --glass-hover: rgba(95, 82, 110, 0.05);
+  --accent: #B394BF;
+  --accent-light: #C9B2D2;
+  --accent-glow: rgba(179, 148, 191, 0.18);
+  --text-primary: rgba(95, 82, 110, 0.92);
+  --text-secondary: rgba(95, 82, 110, 0.66);
+  --text-tertiary: rgba(95, 82, 110, 0.42);
+  --success: #34C759;
+  --warning: #FF9500;
+  --danger: #FF3B30;
+
+  /* Campus guide design tokens — lavender (薰衣草淡紫) palette */
+  --ink: #5F526E;
+  --paper: #F3EEF9;
+  --violet: #B394BF;
+  --lilac: #F1E3F0;
+  --seal: #B394BF;
+}
+
+/* School-seal utility: the signature typographic mark of the campus guide */
+.font-seal {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "苹方-简", sans-serif;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+/* Wayfinding signage eyebrow */
+.sign-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, "Hiragino Sans GB", "Microsoft YaHei", "苹方-简", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 16px;
+}
+
+/* Full-viewport app height that tracks dynamic browser UI (search-at-bottom
+   mobile browsers) via 100dvh, with a vh fallback for older engines. */
+.app-root-height {
+  height: 100vh;
+}
+@supports (height: 100dvh) {
+  .app-root-height {
+    height: 100dvh;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+::selection {
+  background: rgba(110, 92, 168, 0.2);
+  color: var(--ink);
+}
+
+/* Respect reduced motion: quiet the design when asked */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Glass morphism utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-dark {
+  background: rgba(10, 10, 11, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Navigation path animation */
+@keyframes path-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.7; }
+}
+
+@keyframes glow-ring {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Map container */
+.map-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+}
+.map-container:active {
+  cursor: grabbing;
+}
+
+/* Location pin */
+.location-pin {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.location-pin:hover {
+  transform: scale(1.1) translateY(-2px);
+}
+
+/* Input reset */
+input:focus,
+button:focus {
+  outline: none;
+}
+
+/* Admin page scrollable */
+.admin-scroll {
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* ─── Admin theme: fix dark background + default-control readability ─── */
+.admin-main {
+  color-scheme: dark;
+}
+
+.admin-main input,
+.admin-main textarea,
+.admin-main select {
+  color: #ffffff;
+}
+
+.admin-main input::placeholder,
+.admin-main textarea::placeholder,
+.admin-main select::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.admin-main select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 10px center !important;
+  padding-right: 30px;
+  outline: none;
+  cursor: pointer;
+}
+
+.admin-main select:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+.admin-main select option {
+  background-color: #15151b;
+  color: #ffffff;
+}
+
+/* Footer safe area padding */
+body {
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+}

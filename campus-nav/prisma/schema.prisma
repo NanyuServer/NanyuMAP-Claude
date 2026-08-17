@@ -1,0 +1,160 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Location {
+  id          Int      @id @default(autoincrement())
+  category    String
+  detailInfo  String   @map("detail_info")
+  extraInfo   String?  @map("extra_info")
+  x           Float
+  y           Float
+  campus      String   @default("junior")
+  floor       Int?
+  isNavigable Boolean  @default(true) @map("is_navigable")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("locations")
+}
+
+model RoadNode {
+  id               Int        @id @default(autoincrement())
+  x                Float
+  y                Float
+  campus           String     @default("junior")
+  floor            Int?       @default(0)
+  isStaircase      Boolean    @default(false) @map("is_staircase")
+  staircaseFloors  String     @default("[]") @map("staircase_floors")
+  buildingCategory String?    @map("building_category")
+  stairwellId      Int?       @map("stairwell_id")
+  stairwellFloor   Int?       @map("stairwell_floor")
+  stairwellRole    String?    @map("stairwell_role")
+  edgesFrom        RoadEdge[] @relation("FromNode")
+  edgesTo          RoadEdge[] @relation("ToNode")
+
+  @@map("road_nodes")
+}
+
+model RoadEdge {
+  id           Int      @id @default(autoincrement())
+  fromNode     Int      @map("from_node")
+  toNode       Int      @map("to_node")
+  distance     Float
+  isTrunk      Boolean  @default(false)
+  campus       String   @default("junior")
+  floors       String   @default("[]")
+  roadType     String   @default("default") @map("road_type")
+  isSlope      Boolean  @default(false) @map("is_slope")
+  slopeFloors  String   @default("[]") @map("slope_floors")
+  from         RoadNode @relation("FromNode", fields: [fromNode], references: [id], onDelete: Cascade)
+  to           RoadNode @relation("ToNode", fields: [toNode], references: [id], onDelete: Cascade)
+
+  @@map("road_edges")
+}
+
+model AdminUser {
+  id           Int    @id @default(autoincrement())
+  username     String @unique
+  passwordHash String @map("password_hash")
+
+  @@map("admin_users")
+}
+
+model Category {
+  id     Int    @id @default(autoincrement())
+  name   String
+  campus String @default("junior")
+
+  @@unique([name, campus])
+  @@map("categories")
+}
+
+model SystemSetting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+
+  @@map("system_settings")
+}
+
+model Stairwell {
+  id               Int             @id @default(autoincrement())
+  campus           String          @default("junior")
+  buildingCategory String          @map("building_category")
+  centerX          Float           @map("center_x")
+  centerY          Float           @map("center_y")
+  rectX1           Float           @map("rect_x1")
+  rectY1           Float           @map("rect_y1")
+  rectX2           Float           @map("rect_x2")
+  rectY2           Float           @map("rect_y2")
+  floors           String          @default("[]")
+  isTrunk          Boolean         @default(false) @map("is_trunk")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  floorData        StairwellFloor[]
+
+  @@map("stairwells")
+}
+
+model StairwellFloor {
+  id          Int       @id @default(autoincrement())
+  stairwellId Int       @map("stairwell_id")
+  floor       Int
+  x           Float
+  y           Float
+  rectX1      Float     @map("rect_x1")
+  rectY1      Float     @map("rect_y1")
+  rectX2      Float     @map("rect_x2")
+  rectY2      Float     @map("rect_y2")
+  entryX      Float?    @map("entry_x")
+  entryY      Float?    @map("entry_y")
+  exitX       Float?    @map("exit_x")
+  exitY       Float?    @map("exit_y")
+  stairwell   Stairwell @relation(fields: [stairwellId], references: [id], onDelete: Cascade)
+
+  @@unique([stairwellId, floor])
+  @@map("stairwell_floors")
+}
+
+model FloorMarker {
+  id     Int    @id @default(autoincrement())
+  campus String @default("senior")
+  floor  Int
+  x      Float
+  y      Float
+  w      Float
+  h      Float
+
+  @@unique([campus, floor])
+  @@map("floor_markers")
+}
+
+model VisitRoute {
+  id               Int      @id @default(autoincrement())
+  campus           String   @default("junior")
+  name             String
+  locationIds      String   @default("[]") @map("location_ids")
+  checkpoints      String   @default("[]")
+  customCheckpoints String  @default("[]") @map("custom_checkpoints")
+  routePoints      String   @default("[]") @map("route_points")
+  imageCrop        String   @default("{}") @map("image_crop")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("visit_routes")
+}
+
+model Feedback {
+  id          Int      @id @default(autoincrement())
+  type        String
+  description String
+  phone       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("feedbacks")
+}

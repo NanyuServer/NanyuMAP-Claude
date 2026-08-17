@@ -1,0 +1,876 @@
+══════════════════════════════════════════════════════════════════
+        南渝中学校园导览系统 — 部署与使用说明（商用部署版）
+══════════════════════════════════════════════════════════════════
+版本：1.2
+适用范围：生产环境部署 / 运维人员 / 系统管理员
+更新记录：
+  · v1.2 导航体验升级：路线从起点到终点描边动画；起终点统一蓝色圆点（无脉冲）；
+    导航弹窗/卡片三阶贝塞尔出入动画；管理端新增「在地图上点击位置作为起点」
+    开关（允许/禁用前端“地图选点”功能，允许开关字段 allowClickStart）；
+    移动端地图上下可移动范围扩大（白色区域）；导航卡片可收起折叠；
+    高中部楼层图支持缩放与拖动；跨楼层跳层修复；统一液态玻璃 UI；
+    加载性能优化（gzip 压缩、静态资源长缓存、弹窗组件按需加载）
+  · v1.1 新增用户意见反馈（用户端弹窗 + 后台 /admin/feedback 板块，
+    feedbacks 表）；修复参观路线轨迹不经过标记点问题；首屏加载优化
+    （复用服务端注入数据、高中部视图按需加载）
+  · v1.0 初版
+
+------------------------------------------------------------------
+一、系统简介与技术架构
+------------------------------------------------------------------
+本系统为校园数字导览系统，包含：
+  · 用户端：初中部/高中部地图展示、地点检索、路径导航、预设路线（新生报到/来访访问/家长参观）、意见反馈
+  · 管理端（/admin）：地点管理、楼层与楼梯井管理、路网（道路/节点）管理、系统设置、参观路线管理、用户反馈管理
+
+技术栈：
+  · 前端/服务端框架：Next.js 15（React 18，App Router）
+  · 数据库：PostgreSQL（通过 Prisma 5.x ORM 访问）
+  · 认证：JWT（jose 库），管理员登录鉴权
+  · 部署形态：Node.js 服务（Next.js standalone 可选用），由 Nginx 反向代理
+
+项目目录：campus-nav/
+  ├─ src/                 # 源码
+  │   ├─ app/             # 页面与 API 路由（App Router）
+  │   │   ├─ page.tsx     # 首页（用户端地图）
+  │   │   ├─ admin/       # 管理端页面（locations/roads/floors/system/visit-routes/feedback）
+  │   │   └─ api/         # 后端接口（locations/roads/navigation/auth/system/feedback 等）
+  │   ├─ components/      # React 组件（地图、导航、搜索、管理端 UI）
+  │   │   └─ map/         # 地图相关组件（含 FeedbackModal 意见反馈弹窗）
+  │   ├─ lib/             # 公共逻辑（astar 寻路、auth、prisma 客户端等）
+  │   ├─ store/           # 前端全局状态（zustand）
+  │   └─ types/           # TypeScript 类型定义
+  ├─ prisma/              # 数据库 schema 与迁移
+  │   ├─ schema.prisma
+  │   ├─ seed.ts          # 初始化数据（含管理员账号）
+  │   └─ migrations/      # 迁移文件（含 add_feedback 用户反馈表迁移）
+  ├─ public/              # 静态资源（地图图片等）
+  │   └─ assets/          # 地图图片（map.webp 初中部、map2-*.webp 高中部/楼层）
+  ├─ .env.example         # 环境变量示例
+  ├─ package.json
+  ├─ vercel.json          # Vercel 部署配置（仅 Vercel 使用）
+  └─ 系统使用说明.txt      # 本文档（不入库/不随部署）
+
+关键说明：
+  · 数据模型集中在 prisma/schema.prisma；改表结构后用
+    prisma migrate dev（开发）或 migrate deploy（生产）
+  · 寻路算法在 src/lib/astar.ts（跨楼层导航、楼梯井加权）
+  · 地图坐标/比例等运行数据存数据库，由管理端维护
+  · 意见反馈数据存 feedbacks 表，由用户端提交、管理端查看
+  · 性能优化：首页初中部数据由服务端注入，避免重复请求；
+    高中部视图按需加载（切换校区时才下载）
+
+------------------------------------------------------------------
+二、部署前准备（硬件与软件要求）
+------------------------------------------------------------------
+【服务器要求】（自建服务器部署时）
+  · 操作系统：Linux（CentOS 7/8、Ubuntu 20.04/22.04 等）或 Windows Server
+  · CPU / 内存：最低 1 核 / 1GB，推荐 2 核 / 2GB 及以上
+  · 磁盘：≥ 5GB（含系统与数据）
+  · 带宽：建议 ≥ 3Mbps 上行
+
+【运行环境】
+  · Node.js：≥ 18.18.0（推荐 20.x LTS 或 22.x LTS）
+  · npm：随 Node 自带（建议 ≥ 9）
+  · PostgreSQL：≥ 12（推荐 14/15/16）
+  · 反向代理：Nginx ≥ 1.18（或宝塔面板自带 Nginx）
+  · 进程守护：PM2（推荐）或 systemd
+
+【Node.js 版本检查与安装】
+  检查当前版本：
+    node -v
+    npm -v
+  若版本过低，推荐使用 NVM 管理多版本（便于切换/升级）：
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+    source ~/.bashrc
+    nvm install 20
+    nvm use 20
+    nvm alias default 20
+  （或使用宝塔面板的「Node.js 版本管理器」安装 20.x）
+
+【npm 配置建议】
+  安装国内镜像（可选，加快依赖下载）：
+    npm config set registry https://registry.npmmirror.com
+  权限问题（避免以 root 运行业务进程）：
+    · 建议创建独立部署用户（如 www），业务进程不使用 root
+    · 若 node_modules 权限异常，可执行：
+        chown -R www:www /www/wwwroot/NanyuMAP-Claude/campus-nav
+  验证依赖是否完整：npm ls --depth=0（有 ERROR 需重装依赖）
+
+【时区建议】
+  服务器统一使用 Asia/Shanghai（北京时间），避免时间/日志/证书校验偏差：
+    timedatectl set-timezone Asia/Shanghai
+    （CentOS7 用：timedatectl set-timezone Asia/Shanghai；若未启用 timezone 用 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime）
+
+【域名】
+  · 需要准备一个已备案/可解析的域名（国内服务器需 ICP 备案）
+  · 将域名 A 记录解析到服务器公网 IP
+
+------------------------------------------------------------------
+三、数据库准备与配置（重点）
+------------------------------------------------------------------
+本系统使用 PostgreSQL，可采用以下任一方式：
+  A. 自建 PostgreSQL（本机/内网）
+  B. 云数据库（阿里云 RDS / 腾讯云 / 华为云等，或 Neon/Supabase 等托管 PG）
+
+【方式 A：自建 PostgreSQL（以 CentOS / Ubuntu 为例）】
+  1) 安装 PostgreSQL
+     Ubuntu：
+       sudo apt update
+       sudo apt install -y postgresql postgresql-contrib
+     CentOS：
+       sudo yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-$(rpm -E %{rhel})-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+       sudo yum install -y postgresql16-server
+       sudo /usr/pgsql-16/bin/postgresql-16-setup initdb
+       sudo systemctl enable --now postgresql-16
+
+  2) 启动服务
+     sudo systemctl start postgresql
+     sudo systemctl enable postgresql
+
+  3) 创建数据库用户与数据库（生产请使用强密码）
+     sudo -u postgres psql
+       CREATE USER nanyu WITH PASSWORD '你的强密码';
+       CREATE DATABASE nanyu_map OWNER nanyu;
+       GRANT ALL PRIVILEGES ON DATABASE nanyu_map TO nanyu;
+       \q
+
+  4) 开放远程访问（如应用与数据库分机部署）
+     编辑 /etc/postgresql/*/main/postgresql.conf：
+       listen_addresses = '*'
+     编辑 pg_hba.conf，追加：
+       host    nanyu_map    nanyu    应用服务器IP/32    md5
+     然后重启：sudo systemctl restart postgresql
+     （若服务器有防火墙/安全组，放行 5432 端口，仅对应用服务器 IP 开放）
+
+  5) 生成连接串（DATABASE_URL），格式见第四节
+
+【方式 A 补充：Windows 服务器自建 PostgreSQL】
+  1) 到 PostgreSQL 官网下载 Windows 安装包（EDB installer，选择 14/15/16）
+  2) 安装时设置超级用户 postgres 的密码，勾选默认端口 5432
+  3) 打开 pgAdmin 或 psql，执行（与 Linux 相同的建库语句）：
+       CREATE USER nanyu WITH PASSWORD '你的强密码';
+       CREATE DATABASE nanyu_map OWNER nanyu;
+       GRANT ALL PRIVILEGES ON DATABASE nanyu_map TO nanyu;
+  4) 若需远程访问：编辑 data 目录下的 postgresql.conf 的
+     listen_addresses='*'，并在 pg_hba.conf 增加允许的应用服务器 IP；
+     重启 PostgreSQL 服务，并在 Windows 防火墙放行 5432
+
+【字符集 / 排序规则建议】
+  创建数据库时使用 UTF8 编码（中文内容必需）：
+    CREATE DATABASE nanyu_map OWNER nanyu ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C';
+  （若建库时未指定 UTF8 且为中文乱码，需重建数据库）
+
+【连接池说明】
+  · 应用（Next.js/Prisma）通过 DATABASE_URL 访问数据库
+  · 若使用云数据库代理或 PgBouncer，连接串追加 ?pgbouncer=true，
+    并把 DIRECT_URL 指向真实数据库（Prisma 迁移直连用）
+  · 连接数：单实例默认 100 左右，足够；若遇“connection limit exceeded”，
+    检查是否泄漏连接或调大 max_connections
+
+【数据库健康检查】
+    pg_isready -h 127.0.0.1 -p 5432
+    psql -h 127.0.0.1 -U nanyu -d nanyu_map -c "SELECT 1;"
+    （能返回 1 说明连接正常）
+
+【方式 B：云数据库 / 托管 PG】
+  1) 在云厂商控制台创建 PostgreSQL 实例，记录：
+     · 主机名（host）
+     · 端口（默认 5432）
+     · 数据库名
+     · 用户名 / 密码
+  2) 将应用服务器 IP 加入数据库白名单（安全组/IP 白名单）
+  3) 如需 SSL，开启数据库 SSL 并取得证书（连接串加 ?sslmode=require）
+  4) 生成连接串（DATABASE_URL），格式见第四节
+  5) 云数据库务必开启自动备份，并设置备份保留周期（建议 ≥ 7 天）
+
+【初始化表结构】
+  数据库就绪后，在项目目录执行（详细步骤见第五节第 6 步）：
+    npx prisma generate      # 生成 Prisma Client
+    npx prisma db push       # 将 schema.prisma 同步到数据库（首次建表）
+  或使用迁移：
+    npx prisma migrate deploy
+  说明：db push 简单直接；生产建议改用迁移（migrate），可追溯可回滚
+
+【用户反馈表（新增功能，首次部署/升级必建）】
+  意见反馈功能依赖 feedbacks 表，未建表时用户提交会失败。建表 SQL：
+    CREATE TABLE IF NOT EXISTS "feedbacks" (
+        "id"          SERIAL NOT NULL,
+        "type"        TEXT NOT NULL,     -- 功能意见/界面意见/新的需求/其他
+        "description" TEXT NOT NULL,     -- 问题描述（必填）
+        "phone"       TEXT,              -- 手机号（选填）
+        "created_at"  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "feedbacks_pkey" PRIMARY KEY ("id")
+    );
+  已提交迁移文件 prisma/migrations/add_feedback/migration.sql，
+  升级时执行 npx prisma migrate deploy 即可自动建表。
+
+------------------------------------------------------------------
+四、环境变量配置（重点）
+------------------------------------------------------------------
+进入项目目录 campus-nav/，复制 .env.example 为 .env（生产）或 .env.local：
+
+    cp .env.example .env
+
+编辑 .env，共三个关键变量：
+
+1) DATABASE_URL（应用连接串）
+   格式：
+     postgresql://用户名:密码@主机:端口/数据库名?sslmode=require
+   示例（自建，无 SSL 可省略 sslmode）：
+     postgresql://nanyu:MyStrongPass@127.0.0.1:5432/nanyu_map
+   示例（云数据库，启用 SSL）：
+     postgresql://nanyu:MyStrongPass@pgm-xxxx.pg.rds.aliyuncs.com:5432/nanyu_map?sslmode=require
+   注意：
+     · 密码中含特殊字符（@ : / ? 等）需 URL 编码（如 @ → %40）
+     · 若使用连接池（pgbouncer/云数据库代理），可追加 &pgbouncer=true
+
+2) DIRECT_URL（Prisma 直连串，可选但推荐）
+   用于 Prisma 迁移/管理直连数据库，绕过连接池：
+     postgresql://nanyu:MyStrongPass@127.0.0.1:5432/nanyu_map?sslmode=require
+
+3) JWT_SECRET（管理员登录令牌密钥，必须设置且保持机密）
+   生成方式：
+     openssl rand -base64 32
+   示例：
+     JWT_SECRET="9Xz2kQw...（随机长字符串）"
+
+【完整 .env 模板（复制后逐项替换）】
+  # ========== 数据库（必填） ==========
+  DATABASE_URL="postgresql://nanyu:MyStrongPass@127.0.0.1:5432/nanyu_map?sslmode=require"
+  DIRECT_URL="postgresql://nanyu:MyStrongPass@127.0.0.1:5432/nanyu_map?sslmode=require"
+
+  # ========== 认证（必填，务必改掉默认） ==========
+  JWT_SECRET="用 openssl rand -base64 32 生成的长随机串"
+
+  # ========== 可选变量 ==========
+  PORT=3000                    # 服务监听端口（PM2/systemd 也可用）
+  NODE_ENV=production          # 生产环境务必为 production
+
+  # 备注：
+  #  · 本地开发（无数据库）可用示例 dummy 值，但生产必须为真实连接
+  #  · 云数据库 + 连接池时，DATABASE_URL 带 pgbouncer=true，
+  #    DIRECT_URL 指向真实库（prisma migrate/db push 用）
+  #  · 密码含特殊字符（@ : / ? #）需 URL 编码，如 @ → %40、# → %23
+
+【环境变量加载说明】
+  · Next.js 自动读取项目根目录的 .env / .env.local（.local 优先）
+  · 修改 .env 后需重启服务才生效（PM2：pm2 restart nanyu-map）
+  · Vercel 部署时在控制台配置同名变量，不要提交 .env 到 Git
+
+【验证配置是否生效】
+  可在项目目录执行以下命令查看 DATABASE_URL（生产注意勿泄露密码）：
+    node -e "console.log(process.env.DATABASE_URL)"
+  （如输出为空，说明 .env 未放到 campus-nav/ 根目录或文件名不对）
+
+【安全提醒】
+  · JWT_SECRET 严禁泄露，不要提交到 Git
+  · .env / .env.local 已被 .gitignore 忽略，不会入库
+  · 定期轮换 JWT_SECRET 后需重启服务（会导致旧登录令牌失效，属正常）
+
+------------------------------------------------------------------
+五、部署方式一：自建服务器（宝塔/Nginx + PM2，商用推荐）
+------------------------------------------------------------------
+以下以 Linux + 宝塔面板为例（无宝塔则用命令行等价操作）。
+
+1) 安装基础环境
+   · 宝塔面板中安装：Nginx、Node.js（选择 20.x）、PM2 管理器
+   · 或命令行：
+       curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+       sudo apt install -y nodejs
+       sudo npm install -g pm2
+
+2) 上传项目代码到服务器
+   建议路径：/www/wwwroot/nanyu-map/
+   方式：
+   · 方式一：Git 拉取
+       cd /www/wwwroot
+       git clone https://github.com/NanyuServer/NanyuMAP-Claude.git
+       cd NanyuMAP-Claude/campus-nav
+   · 方式二：宝塔文件上传 / scp / 压缩包解压
+   注意：仅需部署 campus-nav/ 子目录内容（Next.js 项目根）
+
+3) 安装依赖
+   cd /www/wwwroot/NanyuMAP-Claude/campus-nav
+   npm install
+   （生产建议：npm ci，若已提交 package-lock.json）
+
+4) 配置环境变量
+   参考第四节创建 .env（放于 campus-nav/ 根目录）
+
+5) 数据库初始化（首次部署必做）
+   npx prisma generate
+   npx prisma db push
+   （如使用迁移：npx prisma migrate deploy）
+   导入初始数据（含管理员账号）：
+   npx prisma db seed
+   或：npm run db:seed
+
+6) 构建生产版本
+   npm run build
+   （即：prisma generate && next build）
+
+【宝塔 Node 项目（面板化启动，可选，替代纯命令行）】
+   宝塔面板 → 网站 → Node 项目 → 添加 Node 项目：
+   · 项目目录：/www/wwwroot/NanyuMAP-Claude/campus-nav
+   · 启动选项：选择 package.json（start）或自定义启动命令
+       node node_modules/next/dist/bin/next start -p 3000
+   · 端口：3000
+   · 项目版本：Node 20.x
+   · 创建后宝塔会自动用 PM2 托管，可在「Node 项目」里查看日志/重启
+   · 域名绑定与反向代理：在「网站」中添加站点（域名），
+     「反向代理」指向 127.0.0.1:3000，再按下方第 8 步配置 SSL
+   · 注意：宝塔 Node 项目的启动脚本若选了 npm start，
+     确保 package.json 的 start 脚本存在（本项目已配置）
+
+7) 启动服务（用 PM2 守护）
+   方式一（前台脚本，调试用）：
+     npm run start      # 默认端口 3000
+   方式二（PM2，推荐）：
+     pm2 start npm --name "nanyu-map" -- start
+     pm2 save                    # 保存进程列表
+     pm2 startup                 # 生成开机自启命令并执行其输出
+     # 示例：pm2 startup systemd -u www --hp /home/www
+
+   自定义端口（可选）：
+     PORT=3000 npm run start
+   （也可用 next start -p 3000）
+
+【PM2 常用运维命令】
+     pm2 status                 # 查看所有进程状态
+     pm2 logs nanyu-map         # 实时查看日志
+     pm2 logs nanyu-map --lines 200   # 查看最近 200 行
+     pm2 monit                  # 实时监控 CPU/内存
+     pm2 restart nanyu-map      # 重启
+     pm2 reload nanyu-map       # 平滑重载（0 秒中断）
+     pm2 stop nanyu-map         # 停止
+     pm2 delete nanyu-map       # 删除进程记录
+     pm2 save                   # 每次修改进程后执行，保证开机自启一致
+
+【PM2 日志与环境配置（可选进阶）】
+   为进程指定独立日志路径与内存上限（防止日志无限增长）：
+     pm2 start npm --name "nanyu-map" -- start \
+       --log /var/log/nanyu-map/out.log \
+       --error /var/log/nanyu-map/err.log \
+       --merge-logs --time --max-memory-restart 600M
+   · --time：日志带时间戳
+   · --max-memory-restart 600M：内存超限自动重启（防 OOM）
+   · 更规范做法：在项目根创建 ecosystem.config.js，内容示例：
+       module.exports = {
+         apps: [{
+           name: 'nanyu-map',
+           script: 'node_modules/next/dist/bin/next',
+           args: 'start -p 3000',
+           env: { NODE_ENV: 'production' },
+           max_memory_restart: '600M',
+           time: true,
+           merge_logs: true,
+           error_file: '/var/log/nanyu-map/err.log',
+           out_file: '/var/log/nanyu-map/out.log',
+           autorestart: true,
+         }]
+       };
+     · 然后启动：pm2 start ecosystem.config.js && pm2 save
+   · 说明：Next.js 自带自重启/错误恢复，一般不需要 cluster 多实例；
+     如确需多核并发，可用 cluster 模式，但需注意同一端口多进程
+     需借助 Nginx 负载均衡或 PM2 cluster 支持（Next 官方建议单实例 +
+     外部负载均衡，此处不展开）
+
+【无 PM2 的替代方案：systemd（Ubuntu/Debian）】
+   创建 /etc/systemd/system/nanyu-map.service：
+     [Unit]
+     Description=Nanyu Map (Next.js)
+     After=network.target
+
+     [Service]
+     Type=simple
+     User=www
+     WorkingDirectory=/www/wwwroot/NanyuMAP-Claude/campus-nav
+     Environment=NODE_ENV=production
+     EnvironmentFile=/www/wwwroot/NanyuMAP-Claude/campus-nav/.env
+     ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -p 3000
+     Restart=always
+     RestartSec=5
+     LimitNOFILE=65535
+
+     [Install]
+     WantedBy=multi-user.target
+   启用：
+     systemctl daemon-reload
+     systemctl enable --now nanyu-map
+     systemctl status nanyu-map
+     journalctl -u nanyu-map -f   # 查看日志
+   注意：EnvironmentFile 读取的 .env 不支持引号包裹的整串值时需调整，
+   一般直接使用 Environment= 逐项写入关键变量
+
+8) 配置 Nginx 反向代理 + HTTPS（重点）
+   在宝塔「网站」中新增站点，域名指向本服务器，然后在站点配置中
+   修改反向代理到 127.0.0.1:3000。推荐完整配置如下
+   （非宝塔环境请将整段写入 /etc/nginx/conf.d/你的域名.conf）：
+
+     # ---------- http 段（全局，可放 /etc/nginx/nginx.conf） ----------
+     # gzip 压缩（减小传输体积，图片/字体一般不压，因为已压缩过）
+     gzip on;
+     gzip_min_length 1k;
+     gzip_comp_level 5;
+     gzip_types text/plain text/css application/json application/javascript
+                application/xml image/svg+xml font/woff2 text/xml;
+     gzip_vary on;
+
+     # ---------- 站点 server 段 ----------
+     server {
+         listen 80;
+         listen [::]:80;
+         server_name 你的域名.com;
+
+         # HTTP 自动跳转 HTTPS（证书就绪后启用）
+         # return 301 https://$host$request_uri;
+
+         # 可选：基础限流（防刷接口）
+         # limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
+
+         location / {
+             proxy_pass http://127.0.0.1:3000;
+             proxy_http_version 1.1;
+             proxy_set_header Upgrade $http_upgrade;
+             proxy_set_header Connection 'upgrade';
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+             proxy_set_header X-Forwarded-Proto $scheme;
+             proxy_cache_bypass $http_upgrade;
+             client_max_body_size 50m;
+             proxy_connect_timeout 60s;
+             proxy_read_timeout 60s;
+         }
+
+         # 静态资源（_next 构建产物）交给 Next 处理即可，若需 Nginx 直出缓存：
+         # location ~* ^/_next/static/ {
+         #     proxy_pass http://127.0.0.1:3000;
+         #     proxy_cache_valid 200 365d;
+         #     add_header Cache-Control "public, max-age=31536000, immutable";
+         # }
+         # 图片资源（public/assets）：
+         # location /assets/ {
+         #     alias /www/wwwroot/NanyuMAP-Claude/campus-nav/public/assets/;
+         #     expires 30d;
+         #     add_header Cache-Control "public, max-age=2592000";
+         # }
+
+         # 可选：安全响应头
+         # add_header X-Content-Type-Options nosniff;
+         # add_header X-Frame-Options SAMEORIGIN;
+         # add_header Referrer-Policy strict-origin-when-cross-origin;
+     }
+
+   HTTPS（宝塔「SSL」一键申请 Let's Encrypt 证书，或自有证书）：
+   · 证书到期自动续期（宝塔自动处理；命令行用 certbot renew --quiet）
+   · 启用证书后，将上述 server 段改监听 443 ssl http2，并加：
+         listen 443 ssl;
+         http2 on;                          # 启用 HTTP/2 加速
+         ssl_certificate     /www/server/panel/vhost/cert/你的域名/fullchain.pem;
+         ssl_certificate_key /www/server/panel/vhost/cert/你的域名/privkey.pem;
+         ssl_protocols TLSv1.2 TLSv1.3;
+         ssl_ciphers HIGH:!aNULL:!MD5;
+     · 并把 80 端口改为 return 301 https://$host$request_uri; 强制跳转
+
+   保存后重载：nginx -t && nginx -s reload   （宝塔点「重载配置」）
+
+【上线后可用 curl 自检】
+     curl -I https://你的域名/                 # 看 HTTP 状态与响应头
+     curl -I https://你的域名/assets/map.webp # 静态资源
+     curl -I http://127.0.0.1:3000/           # 直连 Node 是否通
+     （返回 200 且 header 含 nginx 说明代理正常）
+
+【防火墙 / 安全组放行（重要，否则外网访问不了）】
+  · 云服务器安全组（阿里云/腾讯云/华为云控制台）：
+      入方向放行 80（HTTP）、443（HTTPS）
+      出方向默认放行
+      （管理端口 22/3389 建议仅对办公 IP 开放）
+  · 服务器本机防火墙（firewalld，CentOS/RHEL）：
+      systemctl start firewalld && systemctl enable firewalld
+      firewall-cmd --permanent --add-service=http
+      firewall-cmd --permanent --add-service=https
+      firewall-cmd --permanent --add-service=ssh
+      firewall-cmd --reload
+      firewall-cmd --list-all        # 查看已放行
+  · 服务器本机防火墙（ufw，Ubuntu/Debian）：
+      ufw allow 80/tcp
+      ufw allow 443/tcp
+      ufw allow OpenSSH
+      ufw enable
+      ufw status
+  · 说明：Node 的 3000 端口仅需本机（127.0.0.1）访问，不要对外放行，
+    否则绕过 Nginx 直接访问应用。若必须对外，至少限制来源 IP。
+
+【目录与权限检查】
+  · 确保部署用户对项目目录有读写权限（.next、node_modules、public）
+      chown -R www:www /www/wwwroot/NanyuMAP-Claude/campus-nav
+  · public/assets 图片文件权限：644（可读即可）
+  · .env 权限收紧，避免被其他用户读取：chmod 600 .env
+
+【内存不足时的 swap（1~2GB 小内存服务器建议）】
+  临时启用 2G swap：
+    fallocate -l 2G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+  永久生效：在 /etc/fstab 追加：
+    /swapfile none swap sw 0 0
+  （配合 PM2 的 --max-memory-restart 防止进程被杀）
+
+9) 上线检查（见第七节）
+
+【Windows 服务器部署】
+   · 安装 Node.js 20.x 与 PostgreSQL
+   · 上传代码，npm install / build / start
+   · 用 pm2-windows-service 或 NSSM 将服务注册为开机自启
+   · 用 IIS 或 Nginx for Windows 反向代理到 3000 端口
+   · 防火墙放行 80/443；IIS 需安装 URL Rewrite 模块做反向代理
+
+------------------------------------------------------------------
+六、部署方式二：Vercel（Serverless，可选）
+------------------------------------------------------------------
+Vercel 部署仅需较少运维，但请注意：
+  · 本仓库为 monorepo，Next.js 项目在 campus-nav/ 子目录
+  · 在 Vercel 项目「Settings → General → Root Directory」必须设为 campus-nav
+  · 环境变量在 Vercel 项目 Settings → Environment Variables 配置：
+      DATABASE_URL、DIRECT_URL、JWT_SECRET
+  · 环境变量可分别设置 Production / Preview / Development 三个环境的值
+    （Preview 用于分支预览，可用独立测试库避免污染生产数据）
+  · 数据库必须公网可访问（云 PG / Neon 等），并放行 Vercel 部署区域 IP
+    （在数据库白名单中放行 Vercel 的出口 IP，或使用 Neon 等无服务器
+     数据库天然适配 Serverless；注意免费数据库可能有连接数/空闲限制）
+  · 部署触发：push 到 main 自动构建，或手动 Redeploy
+  · 本项目框架预设为 Next.js，构建命令 campus-nav/vercel.json 已配置
+    （prisma generate && next build）
+  · 域名：在 Vercel 项目 Settings → Domains 绑定你的域名
+    （如 www.nyzxgbz.top），并到域名服务商把 CNAME 指向
+    cname.vercel-dns.com，Vercel 自动签发/续期 SSL 证书
+  · 管理端：同样通过 /admin/login 访问，凭据与自建一致
+  · 局限：Vercel 免费版在中国大陆访问可能较慢/不稳定；图片与地图资源
+    均在 public/ 中会随构建上传，大图片会占用带宽，注意免费额度
+  · 回滚：在 Deployments 页面对某一历史部署点「Promote to Production」即可
+
+（本说明以自建服务器为主，Vercel 为可选简化方案）
+
+------------------------------------------------------------------
+七、上线检查清单
+------------------------------------------------------------------
+部署完成后逐项验证：
+
+ 1) 网站首页可访问
+    访问 https://你的域名/ 应显示加载页，随后出现校园地图（初中部默认）
+ 2) 地图资源正常
+    直接访问 https://你的域名/assets/map.webp 能打开图片
+ 3) 初中部 / 高中部切换正常
+    移动端底部导航或桌面端顶部切换，两校区地图均可显示
+ 4) 搜索功能
+    输入地点（如“图书馆”）能返回结果并选中
+ 5) 导航功能
+    选择起点与目的地，能生成路线（含跨楼层时显示楼梯提示）
+ 5a) 意见反馈（新增功能）
+    「关于本项目 → 意见反馈」提交成功后显示“信息中心已收到您的反馈”，
+    且后台 /admin/feedback 能看到该条记录（需先执行用户反馈表 SQL）
+ 5b) 参观路线轨迹（新增功能）
+    /admin/visit-routes 中「计算路线」后，轨迹线应精确穿过每个打卡点标记
+ 6) 管理端登录
+    访问 https://你的域名/admin/login 用 seed 创建的管理员账号登录
+ 7) HTTPS 正常
+    浏览器地址栏显示安全锁，无混合内容告警
+ 8) 移动端适配
+    手机浏览器访问，地图可拖动缩放，悬浮导航/搜索正常
+ 9) 数据已导入（首次部署）
+    管理端地点/路网列表非空；若为空，确认已执行 prisma db seed
+10) 服务自启已配置
+    重启服务器后 PM2（pm2 ls 恢复运行）或 systemd 自动拉起服务
+11) 备份已配置（可选但强烈建议）
+    确认 crontab 备份脚本存在，且 /backup 下已生成备份文件
+12) 日志正常
+    pm2 logs 无红色报错；nginx error.log 无持续异常
+
+------------------------------------------------------------------
+八、后台使用流程（简要）
+------------------------------------------------------------------
+1) 登录管理端
+   访问 /admin/login，输入管理员账号。
+   默认管理员账号（由 prisma seed 初始化）：
+     用户名：admin
+     初始密码：admin123456
+   ⚠ 首次登录后请立即修改密码（在数据库中更新 bcrypt 哈希，
+   或更换 admin 账号；默认密码仅用于首次初始化，严禁生产环境长期使用）
+
+2) 地点管理（/admin/locations）
+   · 添加/编辑初中部与高中部地点（名称、分类、图上坐标、楼层）
+   · 设置各校区「可出发起点」（北门/东南门/大门/各楼层）
+   · 开关「从当前位置出发」并配置校区地理坐标（用于定位换算）
+   · 开关「在地图上点击位置作为起点」：控制用户端“地图选点”功能是否显示
+     （配置字段 allowClickStart，默认开启；关闭后前端弹窗不再显示该入口）
+   · 保存导航全局设置（保存后用户端弹窗实时生效）
+
+3) 楼层管理（/admin/floors）
+   · 查看高中部各楼层平面图
+   · 管理楼梯井：创建、配置每层出入口（出入口1/出入口2 及目标楼层）
+   · 在楼层平面图「路网」中，把楼梯口（绿色节点）连接到同层道路
+
+4) 路网管理（/admin/roads）
+   · 添加节点、创建路径（边）、坡度道路（楼梯/斜坡边）
+   · 删除/编辑节点与边，设置主干道、道路类型、楼层归属
+   · 注意：同一条楼梯的跨层边由楼梯井自动生成，勿手动乱连
+
+5) 系统设置（/admin/system）
+   · 系统版本、数据库版本展示
+   · 初中部/高中部地图比例、预设路线图片裁剪调整
+
+6) 参观路线（/admin/visit-routes）
+   · 维护“家长参观”预设路线（途经点/打卡点）
+   · 打卡点支持「选择地点」与「地图选点」两种方式，可调整顺序
+   · 轨迹修复说明：计算/保存后的轨迹会精确穿过每个打卡点标记；
+     若历史路线轨迹与标记点对不上，重新点「计算路线」→「保存路线」即可
+     （新版本路径生成逻辑已包含各途经点坐标）
+
+7) 用户反馈（/admin/feedback）
+   · 查看用户端「关于本项目 → 意见反馈」提交的反馈
+   · 顶部按类型统计（功能意见/界面意见/新的需求/其他）
+   · 列表显示反馈类型、时间、描述与联系方式（手机号，选填），可删除
+   · 数据来源：用户端意见反馈弹窗提交，写入 feedbacks 表（公开接口 POST，
+     后台查看需管理员登录）
+
+【用户端导航体验说明】
+   · 路线动画：导航计算完成后，路线会从起点向终点描边式逐步显示（约 1 秒）
+   · 起终点标记：统一为蓝色圆点（无脉冲动画）；起点/终点名称标签通过
+     虚线连点并拉开，避免遮挡路线
+   · 导航卡片：出现/消失/收起/展开均使用三阶贝塞尔曲线动画；
+     展开态可「收起」（仅显示目的地）、「结束导航」
+   · 楼层图：高中部楼层平面图支持双指捏合/按钮缩放与拖动，
+     地点标签在放大时保持屏幕大小（不超过原 1.15 倍）
+   · 弹窗（选择出发地/预设路线/意见反馈）：均使用三阶贝塞尔出入动画
+
+【附：如何修改管理员密码（不重置其它数据）】
+  在项目目录执行以下 Node 脚本，用 bcrypt 生成新哈希后更新数据库：
+    node -e "
+    const bcrypt=require('bcryptjs');
+    bcrypt.hash('你的新密码',12).then(h=>console.log(h));
+    "
+  将输出的哈希填入数据库（用 psql 或管理工具）：
+    UPDATE admin_users SET password_hash='上一步输出的哈希' WHERE username='admin';
+  说明：
+   · 不要直接存明文密码；哈希轮数 12 与 seed 一致即可
+   · 修改后旧登录态令牌仍有效，如需强制下线可轮换 JWT_SECRET
+   · 生产环境切勿继续使用 admin123456
+
+------------------------------------------------------------------
+九、后续运维
+------------------------------------------------------------------
+【日常监控】
+  · PM2：pm2 status、pm2 logs nanyu-map、pm2 monit
+  · 资源：free -h、df -h、top；云服务器控制台看负载
+  · Nginx 日志：/www/wwwroot/*/logs/ 或 /var/log/nginx/
+
+【数据库备份（必须定期）】
+  手动备份：
+    pg_dump -U nanyu -h 127.0.0.1 nanyu_map -F c -f /backup/nanyu_$(date +%F).dump
+  恢复：
+    pg_restore -U nanyu -h 127.0.0.1 -d nanyu_map /backup/nanyu_YYYY-MM-DD.dump
+  建议：
+    · 每日定时备份（crontab），保留最近 7~30 天
+    · 云数据库用厂商自动备份
+
+【一键备份脚本（推荐，crontab 每日执行 + 自动清理）】
+  新建 /opt/backup-nanyu.sh：
+    #!/bin/bash
+    set -e
+    BACKUP_DIR=/backup
+    KEEP_DAYS=15
+    mkdir -p $BACKUP_DIR
+    # 1) 数据库全量备份（自定义格式）
+    pg_dump -U nanyu -h 127.0.0.1 nanyu_map -F c \
+      -f $BACKUP_DIR/nanyu_$(date +%F_%H%M).dump
+    # 2) 清理 15 天前的旧备份
+    find $BACKUP_DIR -name 'nanyu_*.dump' -mtime +$KEEP_DAYS -delete
+    # 3) 可选：同步到异地/对象存储（示例用 rclone 到 OSS）
+    # rclone copy $BACKUP_DIR remote:nanyu-backup/ --include 'nanyu_*.dump'
+  授权并加入定时任务：
+    chmod +x /opt/backup-nanyu.sh
+    crontab -e   # 添加：
+    30 2 * * * /opt/backup-nanyu.sh >> /var/log/nanyu-backup.log 2>&1
+  提示：
+    · 异地备份比同机备份更安全（防磁盘损坏/被勒索）
+    · 首次上线后做一次「备份→恢复到测试库」演练，确保可恢复
+    · pg_dump 需要数据库账号有备份权限（nanyu 已具备）
+
+【版本更新发布流程】
+  cd /www/wwwroot/NanyuMAP-Claude/campus-nav
+  git pull                     # 拉取最新代码
+  npm install                  # 安装新增依赖
+  npx prisma generate          # 若 schema 变更
+  npx prisma migrate deploy    # 应用新增迁移（如 add_feedback 用户反馈表）
+  npm run build
+  pm2 restart nanyu-map        # 重启服务
+  （若改动数据库结构，先备份再执行迁移）
+  · 升级后注意：参观路线存量数据需在 /admin/visit-routes 重新
+    「计算路线 → 保存路线」，轨迹才会精确穿过标记点
+
+【HTTPS 证书续期】
+  宝塔/Let's Encrypt 一般自动续期；若手动，crontab 加：
+     certbot renew --quiet
+  （注意防火墙放行 80 用于续期验证）
+
+【日志与排障】
+  · 服务起不来：pm2 logs 看报错；确认 Node 版本与 .env 配置
+  · 数据库连不上：检查 DATABASE_URL、5432 端口、白名单、防火墙
+  · 页面 500：查看 pm2 logs 与 /admin 是否正常；检查 DB 表结构是否最新
+  · 地图不显示：确认 public/assets 图片存在、域名资源路径正确
+  · 出现 502：多为 Node 进程未启动或崩掉，先 pm2 status 看进程；
+    若进程反复重启，pm2 logs 看错误日志（内存不足、端口占用等）
+  · 内存告警：用 pm2 monit 观察，配合 --max-memory-restart 自动重启
+
+【日志轮转（防日志撑爆磁盘）】
+  · PM2 自带轮转插件：
+      pm2 install pm2-logrotate
+      pm2 set pm2-logrotate:max_size 50M
+      pm2 set pm2-logrotate:retain 7       # 保留 7 个文件
+      pm2 set pm2-logrotate:compress true
+  · Nginx 日志轮转：Linux 自带 logrotate，配置在
+    /etc/logrotate.d/nginx，一般每周轮转并压缩，无需手动
+
+【磁盘空间检查与清理】
+  · 常用排查命令：
+      df -h                    # 磁盘剩余
+      du -sh /var/log /backup /www/wwwroot/*/node_modules 2>/dev/null
+      find / -size +500M 2>/dev/null    # 查找大文件
+  · 可清理项：旧备份、node_modules（重装）、.next 缓存、
+    PM2/Nginx 旧日志、npm 缓存（npm cache clean --force）
+  · 提醒：public/assets 中的大图会随部署占用磁盘/带宽，注意体积
+
+【监控与告警（可选）】
+  · 本机：pm2 monit、free -h、df -h、uptime、top
+  · 宝塔面板自带监控与告警（CPU/内存/磁盘/带宽阈值通知）
+  · 云厂商控制台有基础监控；可配合第三方（如 UptimeRobot / 阿里云拨测）
+    做外网可用性探测，域名挂掉时短信/邮件提醒
+  · 建议每日查看一次：pm2 status && df -h && free -h
+
+【时间同步】
+  · 确保服务器时间准确（影响日志排查与证书校验）：
+      timedatectl set-ntp true
+      systemctl restart systemd-timesyncd   # Ubuntu
+      chronyc sources                        # 查看同步状态
+
+【SSH 安全加固（自建服务器强烈建议）】
+  · 使用密钥登录并关闭密码登录：
+      ssh-keygen -t ed25519
+      ssh-copy-id user@服务器IP
+      然后编辑 /etc/ssh/sshd_config：
+        PasswordAuthentication no
+        PermitRootLogin no
+        systemctl restart sshd
+  · 安装 fail2ban 自动封禁爆破 IP：
+      apt install -y fail2ban
+      systemctl enable --now fail2ban
+  · 更换默认 SSH 端口（可选），仅对办公 IP 放行 22
+
+【回滚方案】
+  · 代码回滚：Git 回退到上一稳定提交后重新 build + pm2 restart
+      git log --oneline -5
+      git reset --hard <上一提交>
+      npm run build && pm2 restart nanyu-map
+  · 数据库回滚：使用迁移的 down（若有）或从备份恢复
+      pg_restore -U nanyu -h 127.0.0.1 -d nanyu_map /backup/nanyu_日期.dump
+  · 建议每次大版本发布前先做一次数据库备份，再执行迁移
+
+【安全加固】
+  · 定期更新 Node/npm 依赖（npm audit fix）
+  · JWT_SECRET 使用高强度随机值并定期轮换
+  · 数据库仅对应用服务器开放，不用默认账号
+  · 服务器开启防火墙，仅放行 80/443（及必要的 22/管理端口）
+  · 管理端路径建议通过访问控制（IP 白名单 / 二次验证）保护
+  · 管理员账号首次登录后立即改密（默认 admin/admin123456 仅用于初始化）
+  · 建议部署 HTTPS 并在 Nginx 加安全响应头（见第五节配置示例）
+
+------------------------------------------------------------------
+十、常见问题（FAQ）
+------------------------------------------------------------------
+ Q1：npm run build 报 Prisma 相关错误
+ A：确认 .env 已配置 DATABASE_URL，且已执行 npx prisma generate；
+    数据库可达后再 build。
+
+ Q2：网站能打开但地图/数据空白
+ A：检查管理端是否已录入地点与路网数据；检查 /api/locations 返回。
+
+ Q3：跨楼层导航提示“无法找到跨楼层路线”
+ A：确认楼梯井已正确配置出入口并连接到各层道路；
+    确认楼梯井的 point 配置正确（同一楼梯一个 point）。
+
+ Q4：如何修改管理员密码
+ A：在数据库中更新 admin 用户的 bcrypt 哈希，或重新执行 seed
+    （注意 seed 会重置数据，需谨慎）。
+
+ Q5：迁移 vs db push 用哪个
+ A：新项目/开发建议 db push（简单）；生产环境建议使用 migrate
+    （npx prisma migrate deploy），可追溯、可回滚。
+
+ Q6：网站打开报 502 Bad Gateway
+ A：Nginx 通但后端 Node 没起来。检查：
+    · pm2 status 进程是否 online；pm2 logs 看报错
+    · 端口 3000 是否被占用（lsof -i:3000）
+    · .env 是否配置完整、数据库是否可达
+    · 若刚更新过代码，确认已重新 build
+
+ Q7：PM2 进程反复重启 / OOM
+ A：多半是内存不足。措施：
+    · 提高服务器内存或开启 swap
+    · 给 PM2 配置 --max-memory-restart 与 -i 1（单实例）
+    · 查看 pm2 logs 具体报错（如 heap out of memory）
+    · 大图/并发高时可临时重启释放内存
+
+ Q8：数据库报“connection limit exceeded”/连接数满
+ A：检查是否有连接泄漏；确认云数据库连接上限；
+    使用连接池（pgbouncer / 云代理）并调大 max_connections；
+    Prisma 侧可配置 connection_limit（较新版本支持）。
+
+ Q9：地图图片刷新后仍显示旧图
+ A：浏览器/CDN 缓存导致。解决：
+    · 强刷：Ctrl+F5 或手机端清缓存
+    · 域名资源后加版本号查询参数（如 map.webp?v=2）强制更新
+    · 若用 Nginx 静态缓存，发布后清缓存或调整 expires
+
+ Q10：管理端登录后立刻失效 / 令牌过期
+ A：JWT 有有效期，且更换 JWT_SECRET 会使旧令牌全部失效。
+    · 确认服务器时间准确（时区/时钟偏差会导致令牌校验失败）
+    · 若改了 JWT_SECRET，需重新登录
+
+ Q10a：用户提交意见反馈提示“提交失败”
+ A：多为 feedbacks 表未创建。执行建表 SQL 或
+    npx prisma migrate deploy 后再试（见第三节）。
+
+ Q10b：参观路线轨迹与标记点对不上
+ A：旧版本保存的路线轨迹只经过道路节点、不经过标记点。
+    在 /admin/visit-routes 打开该路线，点「计算路线」→「保存路线」
+    重新生成即可（新版本轨迹会精确穿过每个打卡点）。
+
+ Q11：中国地域访问 Vercel 域名慢/不稳定
+ A：Vercel 免费版在中国访问可能不稳定。可考虑：
+    · 套用 Cloudflare（免费）或国内 CDN 加速
+    · 或按本说明第五节改用自建服务器（国内节点）部署
+
+ Q12：npm install 很慢 / 超时
+ A：换国内镜像：
+    npm config set registry https://registry.npmmirror.com
+    或临时：npm install --registry=https://registry.npmmirror.com
+    构建服务器（CI）同理设置镜像。
+
+ Q13：build 时报 SWC/二进制相关错误
+ A：删除缓存重装：
+    rm -rf node_modules .next
+    npm install
+    npm run build
+    （Windows 出现“is not a valid Win32 application”多为 SWC 二进制损坏，
+     删除 node_modules 后重装即可）
+
+ Q14：如何更换域名
+ A：改 Nginx server_name 与新证书后重载；
+    数据库中如存有绝对地址（如预设路线图片 URL）需一并检查；
+    更新云解析 A 记录；清理浏览器缓存验证。
+
+══════════════════════════════════════════════════════════════════
+                    文档结束
+══════════════════════════════════════════════════════════════════
