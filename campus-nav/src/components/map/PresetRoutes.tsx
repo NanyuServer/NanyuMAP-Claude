@@ -199,7 +199,7 @@ export default function PresetRoutes() {
                   <div className="sign-eyebrow" style={{ color: '#B394BF' }}>南渝中学</div>
                   <h2 className="font-seal text-ink font-semibold text-lg">预设路线</h2>
                 </div>
-                <button onClick={handleClose} style={{ background: 'rgba(95,82,110,0.06)', borderRadius: 12 }} className="w-8 h-8 flex items-center justify-center hover:bg-neutral-200 transition-colors">
+                <button onClick={handleClose} style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 12 }} className="w-8 h-8 flex items-center justify-center hover:bg-white/50 transition-colors">
                   <X size={14} className="text-[#5F526E]" />
                 </button>
               </div>
@@ -214,9 +214,11 @@ export default function PresetRoutes() {
                     onClick={() => setSelected(p.type)}
                     className="w-full rounded-2xl transition-all text-left overflow-hidden cursor-pointer"
                     style={{
-                      background: 'rgba(241,227,240,0.6)',
-                      border: '1px solid rgba(95,82,110,0.06)',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(95,82,110,0.05)',
+                      background: 'rgba(255,255,255,0.55)',
+                      backdropFilter: 'blur(50px) saturate(200%)',
+                      WebkitBackdropFilter: 'blur(50px) saturate(200%)',
+                      border: '1px solid rgba(255,255,255,0.45)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35), 0 2px 8px rgba(95,82,110,0.06)',
                     }}
                   >
                     <div className="px-4 py-4 flex items-center gap-3">
@@ -245,7 +247,7 @@ export default function PresetRoutes() {
                     <p className="text-neutral-400 text-[13px] mt-0.5">选择校区和班级开始导航</p>
                   </div>
                 </div>
-                <button onClick={handleClose} style={{ background: 'rgba(95,82,110,0.06)', borderRadius: 12 }} className="w-8 h-8 flex items-center justify-center hover:bg-neutral-200 transition-colors">
+                <button onClick={handleClose} style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 12 }} className="w-8 h-8 flex items-center justify-center hover:bg-white/50 transition-colors">
                   <X size={14} className="text-[#5F526E]" />
                 </button>
               </div>
@@ -257,8 +259,11 @@ export default function PresetRoutes() {
                       <button key={c} onClick={() => setFreshmanCampus(c)}
                         className="flex-1 py-2.5 rounded-2xl text-sm font-medium transition-all"
                         style={{
-                          background: freshmanCampus === c ? 'rgba(179,148,191,0.18)' : 'rgba(95,82,110,0.05)',
-                          border: freshmanCampus === c ? '1px solid rgba(179,148,191,0.5)' : '1px solid transparent',
+                          background: freshmanCampus === c ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.35)',
+                          backdropFilter: 'blur(30px)',
+                          WebkitBackdropFilter: 'blur(30px)',
+                          border: freshmanCampus === c ? '1px solid rgba(179,148,191,0.5)' : '1px solid rgba(255,255,255,0.3)',
+                          boxShadow: freshmanCampus === c ? 'inset 0 1px 0 rgba(255,255,255,0.7)' : 'none',
                           color: freshmanCampus === c ? '#5F526E' : '#737373',
                         }}>
                         {c === 'junior' ? '初中部' : '高中部'}
@@ -269,8 +274,8 @@ export default function PresetRoutes() {
                 <div>
                   <label className="text-neutral-500 text-xs font-medium mb-2 block">输入班级</label>
                   <input value={className} onChange={e => setClassName(e.target.value)} placeholder="如：1班、2班、3班"
-                    className="w-full py-2.5 px-3 rounded-2xl text-[#5F526E] text-sm placeholder-[#B394BF]"
-                    style={{ background: 'rgba(95,82,110,0.05)', border: '1px solid rgba(95,82,110,0.1)', outline: 'none' }} />
+                    className="w-full py-2.5 px-3 rounded-2xl text-[#5F526E] text-sm placeholder-[#B394BF] outline-none"
+                    style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.4)' }} />
                   {className.trim() && freshmanCampus && (
                     <div className="text-neutral-400 text-xs mt-1.5">
                       将导航至：<span className="text-ink font-medium">{freshmanCampus === 'junior' ? '初一' : '高一'}{className.trim()}</span>
@@ -283,8 +288,8 @@ export default function PresetRoutes() {
                 </div>
                 {error && <div className="text-red-500 text-xs">{error}</div>}
                 <button onClick={handleFreshmanNav} disabled={!freshmanCampus || !className.trim()}
-                  className="w-full py-3 rounded-2xl text-white text-sm font-semibold transition-all"
-                  style={{ background: 'linear-gradient(135deg, #B394BF, #9A7DB8)', opacity: !freshmanCampus || !className.trim() ? 0.5 : 1 }}>
+                  className="w-full py-3 rounded-2xl text-ink text-sm font-semibold transition-all"
+                  style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: '0 4px 16px rgba(179,148,191,0.2), inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35)', opacity: !freshmanCampus || !className.trim() ? 0.5 : 1 }}>
                   开始导航
                 </button>
               </div>
@@ -301,7 +306,7 @@ export default function PresetRoutes() {
                     <p className="text-neutral-400 text-[13px] mt-0.5">搜索目的地开始导航</p>
                   </div>
                 </div>
-                <button onClick={handleClose} style={{ background: 'rgba(95,82,110,0.06)', borderRadius: 12 }} className="w-8 h-8 flex items-center justify-center hover:bg-neutral-200 transition-colors">
+                <button onClick={handleClose} style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 12 }} className="w-8 h-8 flex items-center justify-center hover:bg-white/50 transition-colors">
                   <X size={14} className="text-[#5F526E]" />
                 </button>
               </div>
@@ -315,15 +320,18 @@ export default function PresetRoutes() {
                   <div className="relative">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B394BF]" />
                     <input value={accessSearch} onChange={e => setAccessSearch(e.target.value)} placeholder="输入地点名称"
-                      className="w-full py-2.5 pl-9 pr-3 rounded-2xl text-[#5F526E] text-sm placeholder-[#B394BF]"
-                      style={{ background: 'rgba(95,82,110,0.05)', border: '1px solid rgba(95,82,110,0.1)', outline: 'none' }} />
+                      className="w-full py-2.5 pl-9 pr-3 rounded-2xl text-[#5F526E] text-sm placeholder-[#B394BF] outline-none"
+                      style={{ background: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)', border: '1px solid rgba(255,255,255,0.4)' }} />
                   </div>
                 </div>
                 {accessResults.length > 0 && (
                   <div className="space-y-1 max-h-48 overflow-y-auto">
                     {accessResults.map(loc => (
                       <button key={loc.id} onClick={() => handleAccessNav(loc)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-neutral-100 transition-colors">
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors"
+                        style={{ background: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.25)' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.55)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.35)' }}>
                         <MapPin size={14} className="text-[#B394BF] flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="text-[#5F526E] text-sm font-medium truncate">{loc.detailInfo}</div>
@@ -348,7 +356,7 @@ export default function PresetRoutes() {
                     <p className="text-neutral-400 text-[13px] mt-0.5">选择出发门开始参观</p>
                   </div>
                 </div>
-                <button onClick={handleClose} style={{ background: 'rgba(95,82,110,0.06)', borderRadius: 12 }} className="w-8 h-8 flex items-center justify-center hover:bg-neutral-200 transition-colors">
+                <button onClick={handleClose} style={{ background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 12 }} className="w-8 h-8 flex items-center justify-center hover:bg-white/50 transition-colors">
                   <X size={14} className="text-[#5F526E]" />
                 </button>
               </div>
@@ -364,7 +372,7 @@ export default function PresetRoutes() {
                     transition={{ delay: i * 0.06, duration: 0.3, ease: CUBIC_BEZIER }}
                     onClick={() => handleVisitNav(route)}
                     className="w-full flex items-center gap-3 p-4 rounded-2xl transition-all text-left"
-                    style={{ background: 'rgba(241,227,240,0.6)', border: '1px solid rgba(95,82,110,0.06)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 8px rgba(95,82,110,0.05)' }}>
+                    style={{ background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(50px) saturate(200%)', WebkitBackdropFilter: 'blur(50px) saturate(200%)', border: '1px solid rgba(255,255,255,0.45)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.35), 0 2px 8px rgba(95,82,110,0.06)' }}>
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(16,185,129,0.1)' }}>
                       <Flag size={18} className="text-emerald-500" />
                     </div>

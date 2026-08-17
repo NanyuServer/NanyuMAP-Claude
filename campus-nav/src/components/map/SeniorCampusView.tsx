@@ -206,7 +206,8 @@ function ElevationMap({
         boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.06)',
         border: '1px solid rgba(0,0,0,0.08)',
         backgroundColor: '#f5f5f7',
-        overflow: 'hidden',
+        overflow: 'visible',
+        position: 'relative',
       }}
     >
       <div className="relative w-full">
@@ -215,6 +216,7 @@ function ElevationMap({
           alt="高中部立面图"
           className="block w-full h-auto"
           draggable={false}
+          style={{ borderRadius: 16 }}
         />
         {!markersLoading && markers.map(marker => (
           <FloorLabel
@@ -314,12 +316,13 @@ function FloorPlanCard({ floor, locations, onLoad, isMobile = false }: { floor: 
   return (
     <div>
       <div
-        className="relative overflow-hidden"
+        className="relative"
         style={{
           borderRadius: 16,
           boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.06)',
           border: '1px solid rgba(0,0,0,0.08)',
           backgroundColor: '#f5f5f7',
+          overflow: 'visible',
         }}
       >
         <ZoomableFloorPlan

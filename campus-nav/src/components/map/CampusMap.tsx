@@ -605,15 +605,6 @@ function NavigationEndpointLabels({
   const last = path[path.length - 1]
   const cs = mapScale > 1 ? 1 / mapScale : 1
 
-  const OVERLAP_DIST = 6
-
-  const hasOverlap = (px: number, py: number) => {
-    return staircaseEvents.some(evt => Math.hypot(evt.x - px, evt.y - py) < OVERLAP_DIST)
-  }
-
-  const startOverlap = hasOverlap(first.x, first.y)
-  const endOverlap = hasOverlap(last.x, last.y)
-
   const startLabel = (() => {
     if (!start) return '出发地'
     if (start.type === 'category') return start.value
@@ -647,37 +638,80 @@ function NavigationEndpointLabels({
     zIndex: 12,
   }
 
-  // 端点标签：用虚线把标签与点拉开，避免遮挡路线
-  const renderEndpoint = (x: number, y: number, label: string, color: string, dotColor: string, overlap: boolean) => (
-    <div
-      style={{
-        position: 'absolute',
-        left: `${x}%`,
-        top: `${y}%`,
-        transform: `translate(-50%, -50%) scale(${cs})`,
-        zIndex: 12,
-        display: 'flex',
-        flexDirection: overlap ? 'column' : 'column-reverse',
-        alignItems: 'center',
-        pointerEvents: 'none',
-      }}
-    >
-      <div style={{ width: 18, height: 18, borderRadius: '50%', background: dotColor, border: '3px solid rgba(255,255,255,0.95)', boxShadow: '0 2px 12px rgba(59,130,246,0.45), 0 0 0 4px rgba(59,130,246,0.12)', flexShrink: 0 }} />
-      <div style={{ width: 0, height: 24, borderLeft: '1px dashed rgba(59,130,246,0.4)', margin: '3px 0', flexShrink: 0 }} />
-      <div style={{ ...glassStyle, color, marginTop: overlap ? 3 : 0, marginBottom: overlap ? 0 : 3 }}>
-        <div className="flex items-center gap-1.5">
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, border: '1.5px solid rgba(255,255,255,0.9)', flexShrink: 0 }} />
-          {label}
+  // 计算路线在端点处的法线方向，用于偏移标签避免遮挡路线
+  const getNormal = (idx: number): { nx: number; ny: number } => {
+    const prev = path[Math.max(0, idx - 1)]
+    const next = path[Math.min(path.length - 1, idx + 1)]
+    const dx = next.x - prev.x
+    const dy = next.y - prev.y
+    const len = Math.sqrt(dx * dx + dy * dy) || 1
+    return { nx: -dy / len, ny: dx / len }
+  }
+
+  // 检测标签是否与路线重叠（距离路线太近）
+  const overlapsRoute = (px: number, py: number): boolean => {
+    const THRESHOLD = 3
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = path[i], b = path[i + 1]
+      const abx = b.x - a.x, aby = b.y - a.y
+      const apx = px - a.x, apy = py - a.y
+      const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / (abx * abx + aby * aby)))
+      const cx = a.x + t * abx, cy = a.y + t * aby
+      if (Math.hypot(px - cx, py - cy) < THRESHOLD) return true
+    }
+    return false
+  }
+
+  // 检测标签是否与楼梯事件标签重叠
+  const overlapsStair = (px: number, py: number): boolean => {
+    return staircaseEvents.some(evt => Math.hypot(evt.x - px, evt.y - py) < 6)
+  }
+
+  // 端点标签：Pin + 虚线 + 标签，根据路线/楼梯重叠动态调整偏移方向
+  const renderEndpoint = (x: number, y: number, label: string, dotColor: string, pathIdx: number) => {
+    const normal = getNormal(pathIdx)
+    // 检测原始位置是否与路线重叠
+    const routeOverlap = overlapsRoute(x, y)
+    const stairOverlap = overlapsStair(x, y)
+    const needOffset = routeOverlap || stairOverlap
+
+    // 偏移距离：重叠时加大偏移
+    const offsetPx = needOffset ? 48 : 36
+    // 偏移方向：沿法线方向，根据索引交替上下
+    const side = pathIdx % 2 === 0 ? 1 : -1
+    const dx = normal.nx * side * offsetPx
+    const dy = normal.ny * side * offsetPx
+
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          left: `${x}%`,
+          top: `${y}%`,
+          transform: `translate(-50%, -50%) scale(${cs})`,
+          zIndex: 12,
+          pointerEvents: 'none',
+        }}
+      >
+        {/* Pin 圆点 */}
+        <div style={{ width: 18, height: 18, borderRadius: '50%', background: dotColor, border: '3px solid rgba(255,255,255,0.95)', boxShadow: `0 2px 12px ${dotColor}80, 0 0 0 4px ${dotColor}20`, position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }} />
+        {/* 虚线连接线 */}
+        <div style={{ position: 'absolute', left: '50%', top: '50%', width: offsetPx, height: 0, borderTop: '1px dashed rgba(59,130,246,0.4)', transformOrigin: 'left center', transform: `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)` }} />
+        {/* 标签 */}
+        <div style={{ ...glassStyle, color: '#2563EB', position: 'absolute', left: `calc(50% + ${dx}px)`, top: `calc(50% + ${dy}px)`, transform: 'translate(-50%, -50%)' }}>
+          <div className="flex items-center gap-1.5">
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, border: '1.5px solid rgba(255,255,255,0.9)', flexShrink: 0 }} />
+            {label}
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <>
-      {/* 起点/终点均显示蓝色，虚线拉开避免遮挡路线 */}
-      {renderEndpoint(first.x, first.y, startLabel, '#2563EB', '#3B82F6', startOverlap)}
-      {renderEndpoint(last.x, last.y, endLabel, '#2563EB', '#3B82F6', endOverlap)}
+      {renderEndpoint(first.x, first.y, startLabel, '#3B82F6', 0)}
+      {renderEndpoint(last.x, last.y, endLabel, '#3B82F6', path.length - 1)}
     </>
   )
 }

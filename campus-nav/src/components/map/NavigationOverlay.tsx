@@ -139,15 +139,33 @@ export default function NavigationOverlay({ path, isMobile = false, mapScale = 1
     return () => { observer.disconnect(); cancelAnimationFrame(rafRef.current) }
   }, [draw])
 
+  // 检测标签位置是否与路线重叠
+  const overlapsRoute = (px: number, py: number): boolean => {
+    const THRESHOLD = 3
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = path[i], b = path[i + 1]
+      const abx = b.x - a.x, aby = b.y - a.y
+      const apx = px - a.x, apy = py - a.y
+      const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / (abx * abx + aby * aby)))
+      const cx = a.x + t * abx, cy = a.y + t * aby
+      if (Math.hypot(px - cx, py - cy) < THRESHOLD) return true
+    }
+    return false
+  }
+
   const labelPositions = useMemo(() => {
     const out: { normalX: number; normalY: number }[] = []
     const used: { x: number; y: number }[] = []
     staircaseEvents.forEach((evt, i) => {
       const pathIdx = path.findIndex(n => n.id === evt.nodeId)
       let off = labelOffset(path, evt.x, evt.y, pathIdx >= 0 ? pathIdx : i)
-      // If a previous label sits too close, flip to the other side so labels never overlap
+      // 检测是否与路线重叠，重叠时翻转方向
+      if (overlapsRoute(evt.x, evt.y)) {
+        off = { normalX: -off.normalX, normalY: -off.normalY }
+      }
+      // 如果与已有标签太近，翻转到另一侧
       for (let j = 0; j < used.length; j++) {
-        if (Math.hypot(evt.x - used[j].x, evt.y - used[j].y) < 4) {
+        if (Math.hypot(evt.x - used[j].x, evt.y - used[j].y) < 5) {
           off = { normalX: -off.normalX, normalY: -off.normalY }
           break
         }
@@ -192,8 +210,8 @@ export default function NavigationOverlay({ path, isMobile = false, mapScale = 1
       {/* Staircase event markers — hidden when NavigationEndpoints handles them */}
       {!hideStaircaseLabels && staircaseEvents.map((evt, i) => {
         const offset = labelPositions[i]
-        // 标签沿路线法线拉开更远，并用虚线连接，避免遮挡路线
-        const offsetPx = isMobile ? 40 : 46
+        const routeOverlap = overlapsRoute(evt.x, evt.y)
+        const offsetPx = (routeOverlap || isMobile) ? 52 : 46
         const angle = Math.atan2(offset.normalY, offset.normalX) * 180 / Math.PI
         const label = getFloorLabel(evt)
 
