@@ -69,11 +69,8 @@ export default function RoadsPage(): JSX.Element {
   const [renderW, setRenderW] = useState(0)
   const [renderH, setRenderH] = useState(0)
 
-  const [stairwellCorner1, setStairwellCorner1] = useState<{ x: number; y: number } | null>(null)
-  const [stairwellCorner2, setStairwellCorner2] = useState<{ x: number; y: number } | null>(null)
+  const [stairwellCenter, setStairwellCenter] = useState<{ x: number; y: number } | null>(null)
   const [stairwellConfig, setStairwellConfig] = useState<{ buildingCategory: string; floors: number[] } | null>(null)
-  const [stairwellPoints, setStairwellPoints] = useState<StairwellPoint[]>([])
-  const [placingPoint, setPlacingPoint] = useState(false)
 
   const [slopeConfig, setSlopeConfig] = useState<{ fromNode: number; toNode: number; slopeFloors: number[]; roadType: string } | null>(null)
 
@@ -117,8 +114,7 @@ export default function RoadsPage(): JSX.Element {
 
   const resetAll = () => {
     setMode('view'); setEdgeFrom(null); setSelectedEdgeId(null); setNodeEdit(null)
-    setStairwellCorner1(null); setStairwellCorner2(null); setStairwellConfig(null)
-    setStairwellPoints([]); setPlacingPoint(false); setSlopeConfig(null)
+    setStairwellCenter(null); setStairwellConfig(null); setSlopeConfig(null)
   }
 
   const postAction = async (action: string, payload: unknown) => {
@@ -156,19 +152,9 @@ export default function RoadsPage(): JSX.Element {
     }
 
     if (mode === 'addStairwell') {
-      if (!stairwellCorner1) {
-        setStairwellCorner1({ x, y })
-      } else if (!stairwellCorner2) {
-        setStairwellCorner2({ x, y })
+      if (!stairwellCenter) {
+        setStairwellCenter({ x, y })
         setStairwellConfig({ buildingCategory: 'teaching_a', floors: [0, 1] })
-      } else if (placingPoint) {
-        const rx1 = Math.min(stairwellCorner1.x, stairwellCorner2.x)
-        const ry1 = Math.min(stairwellCorner1.y, stairwellCorner2.y)
-        const rx2 = Math.max(stairwellCorner1.x, stairwellCorner2.x)
-        const ry2 = Math.max(stairwellCorner1.y, stairwellCorner2.y)
-        const snapped = snapToRectBorder(x, y, rx1, ry1, rx2, ry2)
-        setStairwellPoints(prev => [...prev, { x: clamp(snapped.x), y: clamp(snapped.y), floors: [...(stairwellConfig?.floors || [0, 1])] }])
-        setPlacingPoint(false)
       }
       return
     }
@@ -240,7 +226,7 @@ export default function RoadsPage(): JSX.Element {
   const setModeToggle = (m: Mode) => {
     setMode(prev => prev === m ? 'view' : m)
     setEdgeFrom(null); setSelectedEdgeId(null)
-    if (m !== 'addStairwell') { setStairwellCorner1(null); setStairwellCorner2(null); setStairwellConfig(null); setStairwellPoints([]); setPlacingPoint(false) }
+    if (m !== 'addStairwell') { setStairwellCenter(null); setStairwellConfig(null) }
     if (m !== 'addSlope') setSlopeConfig(null)
   }
 
@@ -275,21 +261,21 @@ export default function RoadsPage(): JSX.Element {
   })()
 
   const handleCreateStairwell = async () => {
-    if (!stairwellCorner1 || !stairwellCorner2 || !stairwellConfig) return
-    if (stairwellPoints.length === 0) { alert('请至少添加一个出入口点'); return }
+    if (!stairwellCenter || !stairwellConfig) return
+    if (stairwellConfig.floors.length === 0) { alert('请选择至少一个服务楼层'); return }
+    const sw = 0.8; const sh = 0.8
     try {
       await postAction('create_stairwell', {
         campus,
         buildingCategory: stairwellConfig.buildingCategory,
-        rectX1: Math.min(stairwellCorner1.x, stairwellCorner2.x),
-        rectY1: Math.min(stairwellCorner1.y, stairwellCorner2.y),
-        rectX2: Math.max(stairwellCorner1.x, stairwellCorner2.x),
-        rectY2: Math.max(stairwellCorner1.y, stairwellCorner2.y),
+        rectX1: clamp(stairwellCenter.x - sw / 2),
+        rectY1: clamp(stairwellCenter.y - sh / 2),
+        rectX2: clamp(stairwellCenter.x + sw / 2),
+        rectY2: clamp(stairwellCenter.y + sh / 2),
         floors: stairwellConfig.floors,
-        points: stairwellPoints,
+        points: [{ x: clamp(stairwellCenter.x), y: clamp(stairwellCenter.y), floors: stairwellConfig.floors }],
       })
-      setStairwellCorner1(null); setStairwellCorner2(null); setStairwellConfig(null)
-      setStairwellPoints([]); setPlacingPoint(false); setMode('view')
+      setStairwellCenter(null); setStairwellConfig(null); setMode('view')
       fetchRoads()
     } catch (err) { alert(err instanceof Error ? err.message : '创建楼梯井失败') }
   }
@@ -422,7 +408,7 @@ export default function RoadsPage(): JSX.Element {
                     {mode === 'addNode' && '点击空白处添加节点'}
                     {mode === 'addEdge' && (edgeFrom ? `起点 ${edgeFrom} · 选终点` : '选起点节点')}
                     {mode === 'addSlope' && (edgeFrom ? `坡度路起点 ${edgeFrom} · 选终点` : '选坡度路起点')}
-                    {mode === 'addStairwell' && (!stairwellCorner1 ? '点击地图定第一角' : !stairwellCorner2 ? '点击地图定第二角' : placingPoint ? '点击楼梯井边框选点' : '配置楼梯井')}
+                    {mode === 'addStairwell' && (!stairwellCenter ? '点击地图放置楼梯井' : '在右侧面板配置')}
                     {mode === 'deleteEdge' && '点击路径删除'}
                     {mode === 'deleteNode' && '点击节点删除'}
                   </div>
@@ -440,7 +426,7 @@ export default function RoadsPage(): JSX.Element {
               <div
                 ref={mapContainerRef}
                 className={`relative overflow-hidden rounded-xl select-none ${
-                  mode === 'addNode' || (mode === 'addStairwell' && (!stairwellCorner2 || placingPoint)) ? 'cursor-crosshair' :
+                  mode === 'addNode' || mode === 'addStairwell' ? 'cursor-crosshair' :
                   mode === 'deleteEdge' || mode === 'deleteNode' ? 'cursor-pointer' : 'cursor-default'
                 }`}
                 style={{ width: '100%', height: containerH > 0 ? containerH : undefined, aspectRatio: containerH === 0 ? `${natural.w} / ${natural.h}` : undefined, background: '#111' }}
@@ -450,28 +436,19 @@ export default function RoadsPage(): JSX.Element {
 
                 {stairwells.map(sw => {
                   const W = renderW || natural.w; const H = containerH || natural.h
-                  const x1 = (Math.min(sw.rectX1, sw.rectX2) / 100) * W; const y1 = (Math.min(sw.rectY1, sw.rectY2) / 100) * H
-                  const x2 = (Math.max(sw.rectX1, sw.rectX2) / 100) * W; const y2 = (Math.max(sw.rectY1, sw.rectY2) / 100) * H
+                  const cx = (sw.centerX / 100) * W; const cy = (sw.centerY / 100) * H
                   return (
-                    <div key={`sw-${sw.id}`} style={{ position: 'absolute', left: x1, top: y1, width: x2 - x1, height: y2 - y1, background: 'rgba(245,158,11,0.08)', border: '2px dashed rgba(245,158,11,0.5)', borderRadius: 4, pointerEvents: 'none', zIndex: 5 }}>
-                      <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', fontSize: 9, color: 'rgba(245,158,11,0.7)', fontWeight: 600 }}>井#{sw.id}</div>
+                    <div key={`sw-${sw.id}`} style={{ position: 'absolute', left: cx - 10, top: cy - 10, width: 20, height: 20, borderRadius: '50%', background: 'rgba(245,158,11,0.3)', border: '2px dashed rgba(245,158,11,0.7)', pointerEvents: 'none', zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ fontSize: 8, color: '#FBBF24', fontWeight: 700 }}>#{sw.id}</div>
                     </div>
                   )
                 })}
 
-                {mode === 'addStairwell' && stairwellCorner1 && stairwellCorner2 && (() => {
+                {mode === 'addStairwell' && stairwellCenter && (() => {
                   const W = renderW || natural.w; const H = containerH || natural.h
-                  const x1 = (Math.min(stairwellCorner1.x, stairwellCorner2.x) / 100) * W; const y1 = (Math.min(stairwellCorner1.y, stairwellCorner2.y) / 100) * H
-                  const x2 = (Math.max(stairwellCorner1.x, stairwellCorner2.x) / 100) * W; const y2 = (Math.max(stairwellCorner1.y, stairwellCorner2.y) / 100) * H
+                  const cx = (stairwellCenter.x / 100) * W; const cy = (stairwellCenter.y / 100) * H
                   return (
-                    <>
-                      <div style={{ position: 'absolute', left: x1, top: y1, width: x2 - x1, height: y2 - y1, background: 'rgba(245,158,11,0.1)', border: '2px solid rgba(245,158,11,0.7)', borderRadius: 4, pointerEvents: 'none', zIndex: 10 }} />
-                      {stairwellPoints.map((pt, i) => (
-                        <div key={`swpt-${i}`} style={{ position: 'absolute', left: (pt.x / 100) * W - 6, top: (pt.y / 100) * H - 6, width: 12, height: 12, borderRadius: '50%', background: '#F59E0B', border: '2px solid white', zIndex: 15, pointerEvents: 'none', boxShadow: '0 1px 4px rgba(245,158,11,0.5)' }}>
-                          <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#FBBF24', fontWeight: 600, whiteSpace: 'nowrap' }}>{pt.floors.map(f => `${f}F`).join(',')}</div>
-                        </div>
-                      ))}
-                    </>
+                    <div style={{ position: 'absolute', left: cx - 12, top: cy - 12, width: 24, height: 24, borderRadius: '50%', background: 'rgba(245,158,11,0.4)', border: '2px solid rgba(245,158,11,0.8)', pointerEvents: 'none', zIndex: 15, boxShadow: '0 2px 8px rgba(245,158,11,0.4)' }} />
                   )
                 })()}
 
@@ -520,7 +497,7 @@ export default function RoadsPage(): JSX.Element {
                       {mode === 'addNode' && '点击空白处添加节点'}
                       {mode === 'addEdge' && (edgeFrom ? `起点: ${edgeFrom} · 点击目标节点` : '点击第一个节点')}
                       {mode === 'addSlope' && (edgeFrom ? `坡度路起点: ${edgeFrom} · 点击终点` : '点击起点节点')}
-                      {mode === 'addStairwell' && (!stairwellCorner1 ? '点击定第一角' : !stairwellCorner2 ? '点击定第二角' : placingPoint ? '点击楼梯井边框放置出入口' : '请在右侧配置面板操作')}
+                      {mode === 'addStairwell' && (!stairwellCenter ? '点击地图放置楼梯井中心' : '请在右侧配置面板操作')}
                       {mode === 'deleteEdge' && '点击路径删除'}
                       {mode === 'deleteNode' && '点击节点删除'}
                     </div>
@@ -607,11 +584,10 @@ export default function RoadsPage(): JSX.Element {
               <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4">
                 <div className="text-purple-300 text-xs font-semibold mb-2">楼梯井说明</div>
                 <div className="text-white/40 text-xs leading-relaxed space-y-1">
-                  <div>1. 点击「楼梯井」→ 地图上点两个对角定区域</div>
-                  <div>2. 在右侧面板选择建筑和楼层</div>
-                  <div>3. 点击「添加出入口」→ 点击地图边框放点</div>
-                  <div>4. 每个出入口可单独设置适用楼层</div>
-                  <div>5. 确认创建后自动生成坡度道路</div>
+                  <div>1. 点击「楼梯井」→ 点击地图放置中心点</div>
+                  <div>2. 选择建筑类型和服务楼层</div>
+                  <div>3. 系统自动生成每层的道路节点和跨层连接</div>
+                  <div>4. 管理员可用「创建路径」将节点与普通道路相连</div>
                 </div>
               </div>
               <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-4">
@@ -719,12 +695,12 @@ export default function RoadsPage(): JSX.Element {
         </AnimatePresence>
 
         <AnimatePresence>
-          {mode === 'addStairwell' && stairwellCorner2 && stairwellConfig && !placingPoint && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-end justify-center pb-8 z-50" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => { setStairwellConfig(null); setStairwellCorner1(null); setStairwellCorner2(null); setStairwellPoints([]); setMode('view') }}>
-              <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} className="w-full max-w-md mx-4 rounded-2xl p-5 shadow-2xl" style={{ background: 'rgba(18,18,24,0.98)', border: '1px solid rgba(245,158,11,0.2)' }} onClick={e => e.stopPropagation()}>
+          {mode === 'addStairwell' && stairwellCenter && stairwellConfig && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-end justify-center pb-8 z-50" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} onClick={() => { setStairwellCenter(null); setStairwellConfig(null); setMode('view') }}>
+              <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} className="w-full max-w-sm mx-4 rounded-2xl p-5 shadow-2xl" style={{ background: 'rgba(18,18,24,0.98)', border: '1px solid rgba(245,158,11,0.2)' }} onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-4">
-                  <div><div className="text-white text-sm font-semibold">配置楼梯井</div><div className="text-white/35 text-xs">设置建筑类型、楼层和出入口</div></div>
-                  <button onClick={() => { setStairwellConfig(null); setStairwellCorner1(null); setStairwellCorner2(null); setStairwellPoints([]); setMode('view') }} className="text-white/40 hover:text-white"><X size={16} /></button>
+                  <div><div className="text-white text-sm font-semibold">创建楼梯井</div><div className="text-white/35 text-xs">选择建筑类型和服务楼层，系统自动生成跨层道路节点</div></div>
+                  <button onClick={() => { setStairwellCenter(null); setStairwellConfig(null); setMode('view') }} className="text-white/40 hover:text-white"><X size={16} /></button>
                 </div>
                 <div className="mb-4">
                   <div className="text-white/50 text-xs mb-2">建筑类型</div>
@@ -741,56 +717,18 @@ export default function RoadsPage(): JSX.Element {
                     {[0, 1, 2, 3, 4, 5].map(f => <button key={f} onClick={() => setStairwellConfig(p => p ? { ...p, floors: p.floors.includes(f) ? p.floors.filter(x => x !== f) : [...p.floors, f].sort() } : null)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${stairwellConfig.floors.includes(f) ? 'bg-amber-500 text-white' : 'bg-white/5 text-white/50'}`}>{f}楼</button>)}
                   </div>
                 </div>
-
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-white/50 text-xs">出入口点位 ({stairwellPoints.length}/2)</div>
-                    {stairwellPoints.length < 2 && (
-                      <button onClick={() => { setPlacingPoint(true) }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-300 hover:bg-amber-500/30">
-                        <CircleDot size={12} />添加出入口
-                      </button>
-                    )}
-                  </div>
-                  {placingPoint && <div className="text-amber-300 text-xs mb-2 animate-pulse">请点击地图上楼梯井的边框放置出入口点</div>}
-                  {stairwellPoints.length === 0 && !placingPoint && <div className="text-white/25 text-xs">请添加至少1个出入口（最多2个）</div>}
-                  <div className="space-y-2">
-                    {stairwellPoints.map((pt, i) => (
-                      <div key={i} className="rounded-xl px-3 py-2" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-amber-300 text-xs font-medium">出入口 {i + 1} <span className="text-white/30">({pt.x.toFixed(1)}, {pt.y.toFixed(1)})</span></span>
-                          <button onClick={() => setStairwellPoints(prev => prev.filter((_, idx) => idx !== i))} className="text-red-400/60 hover:text-red-400"><X size={12} /></button>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {stairwellConfig.floors.map(f => (
-                            <button key={f} onClick={() => setStairwellPoints(prev => prev.map((p, idx) => idx === i ? { ...p, floors: p.floors.includes(f) ? p.floors.filter(x => x !== f) : [...p.floors, f].sort() } : p))} className={`px-2 py-1 rounded text-[10px] font-medium ${pt.floors.includes(f) ? 'bg-amber-500 text-white' : 'bg-white/5 text-white/40'}`}>{f}F</button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="mb-3 rounded-xl px-3 py-2" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
+                  <div className="text-amber-300 text-xs">位置：({stairwellCenter.x.toFixed(1)}, {stairwellCenter.y.toFixed(1)})</div>
+                  <div className="text-white/30 text-[10px] mt-0.5">将在每层生成道路节点，可与普通道路连接</div>
                 </div>
-
                 <div className="flex gap-2 justify-end">
-                  <button onClick={() => { setStairwellConfig(null); setStairwellCorner1(null); setStairwellCorner2(null); setStairwellPoints([]); setPlacingPoint(false); setMode('view') }} className="px-4 py-2 rounded-xl bg-white/5 text-white/70 text-sm">取消</button>
-                  <button onClick={handleCreateStairwell} disabled={stairwellPoints.length === 0} className="px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-medium disabled:opacity-40">创建楼梯井</button>
+                  <button onClick={() => { setStairwellCenter(null); setStairwellConfig(null); setMode('view') }} className="px-4 py-2 rounded-xl bg-white/5 text-white/70 text-sm">取消</button>
+                  <button onClick={handleCreateStairwell} disabled={stairwellConfig.floors.length === 0} className="px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-medium disabled:opacity-40">创建楼梯井</button>
                 </div>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {placingPoint && (
-          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50">
-            <div className="flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl" style={{ background: 'rgba(18,18,24,0.92)', border: '1px solid rgba(245,158,11,0.3)', backdropFilter: 'blur(12px)' }}>
-              <CircleDot size={16} className="text-amber-400" />
-              <div>
-                <div className="text-amber-300 text-sm font-semibold">请点击楼梯井边框放置出入口</div>
-                <div className="text-white/40 text-xs">已放置 {stairwellPoints.length} 个 · 最多 2 个</div>
-              </div>
-              <button onClick={() => setPlacingPoint(false)} className="px-3 py-1.5 rounded-lg bg-white/10 text-white/60 text-xs hover:bg-white/20 pointer-events-auto flex-shrink-0">返回配置</button>
-            </div>
-          </div>
-        )}
 
         <AnimatePresence>
           {swFloorEdit && (
