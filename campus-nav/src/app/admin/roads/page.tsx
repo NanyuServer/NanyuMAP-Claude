@@ -389,6 +389,7 @@ export default function RoadsPage(): JSX.Element {
             <button onClick={() => setModeToggle('addNode')} className={modeBtnClass('addNode')}><Plus size={15} />{mode === 'addNode' ? '点击地图…' : '添加节点'}</button>
             <button onClick={() => setModeToggle('addEdge')} className={modeBtnClass('addEdge')}><GitMerge size={15} />{mode === 'addEdge' ? (edgeFrom ? `起点:${edgeFrom}` : '选起点…') : '创建路径'}</button>
             <button onClick={() => setModeToggle('addSlope')} className={modeBtnClass('addSlope')}><ArrowUpDown size={15} />{mode === 'addSlope' ? (edgeFrom ? `起点:${edgeFrom}` : '选起点…') : '坡度道路'}</button>
+            <button onClick={() => setModeToggle('addStairwell')} className={modeBtnClass('addStairwell')}><Box size={15} />{mode === 'addStairwell' ? '点击地图…' : '楼梯井'}</button>
             <button onClick={() => setModeToggle('deleteEdge')} className={modeBtnClass('deleteEdge')}><Trash2 size={15} />{mode === 'deleteEdge' ? '点击路径…' : '删除路径'}</button>
             <button onClick={() => setModeToggle('deleteNode')} className={modeBtnClass('deleteNode')}><Trash2 size={15} />{mode === 'deleteNode' ? '点击节点…' : '删除节点'}</button>
             <div className="w-px h-6 bg-white/10 mx-1" />
