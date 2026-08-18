@@ -45,7 +45,7 @@ export default function NavigationOverlay({ path, isMobile = false, mapScale = 1
   const campus = useMapStore(s => s.campus)
   const t = translations['zh']
   const isSenior = campus === 'senior'
-  const cs = isMobile && mapScale > 1 ? 1 / mapScale : 1
+  const cs = mapScale > 1 ? 1 / mapScale : 1
 
   // 路线绘制动画进度（0 → 1），用于从起点到终点的描边动画
   const progressRef = useRef(0)

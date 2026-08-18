@@ -365,13 +365,11 @@ export async function POST(req: NextRequest) {
     if (campusFilter === 'junior') {
       staircaseEvents = staircaseEvents.filter(e => {
         const rt = (e.roadType || '').toLowerCase()
-        if (rt.includes('slope_teaching')) return true
         if (rt.includes('slope_admin')) {
           if (e.fromFloor === 0 && e.toFloor === 1) return false
           if (e.fromFloor === 1 && e.toFloor === 0) return false
-          return true
         }
-        return false
+        return true
       })
     }
 

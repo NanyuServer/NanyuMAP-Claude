@@ -271,9 +271,9 @@ export default function CampusMap({ initialLocations }: Props): JSX.Element {
     loc => loc.detailInfo === loc.category && (!loc.extraInfo || loc.extraInfo.trim() === '') && !(campus === 'senior' && SENIOR_START_POINTS.includes(loc.category))
   )
 
-  // Auto-zoom on mobile when navigation starts to fit route area
+  // Auto-zoom when navigation starts to fit route area (both mobile and desktop)
   useEffect(() => {
-    if (!isMobile || !navigation.isNavigating || navigation.path.length < 2) return
+    if (!navigation.isNavigating || navigation.path.length < 2) return
     const path = navigation.path
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
     for (const p of path) {
@@ -306,7 +306,7 @@ export default function CampusMap({ initialLocations }: Props): JSX.Element {
     const newOffsetX = containerW / 2 - centerPxX * newScale
     const newOffsetY = containerH / 2 - centerPxY * newScale
     commitTransform(newScale, clampOffset(newOffsetX, newOffsetY, newScale))
-  }, [isMobile, navigation.isNavigating, navigation.path, campus, computeMinScale, clampOffset, maxScale])
+  }, [navigation.isNavigating, navigation.path, campus, computeMinScale, clampOffset, maxScale])
 
   const handlePickStart = useCallback(async (percentX: number, percentY: number) => {
     if (!selectingStart || !pickDestination) return

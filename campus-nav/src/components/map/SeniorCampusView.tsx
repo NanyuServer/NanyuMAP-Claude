@@ -469,52 +469,35 @@ function NavigatingFloorPlan({
 
   return (
     <div
-      className="relative overflow-hidden"
+      className="relative"
       style={{
         borderRadius: 16,
         boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.06)',
         border: '1px solid rgba(0,0,0,0.08)',
         backgroundColor: '#f5f5f7',
+        overflow: 'visible',
       }}
     >
-      <div className="relative">
-        <img
-          src={floorPlanSrc(floor)}
-          alt={`${floor}楼 - ${label}`}
-          className="block"
-          style={{ width: '100%', height: 'auto', display: 'block' }}
-          draggable={false}
-          onLoad={() => setLoaded(true)}
-        />
-        {!loaded && (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: '#f5f5f7' }}>
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
-              style={{
-                width: 24,
-                height: 24,
-                border: '2.5px solid rgba(95,82,110,0.12)',
-                borderTopColor: '#5F526E',
-                borderRadius: '50%',
-              }}
-            />
-          </div>
+      <ZoomableFloorPlan
+        src={floorPlanSrc(floor)}
+        alt={`${floor}楼 - ${label}`}
+        onLoaded={() => setLoaded(true)}
+      >
+        {(scale) => (
+          loaded && path && path.length >= 2 ? (
+            <div className="absolute inset-0 pointer-events-none">
+              <NavigationOverlay path={path} isMobile={isMobile} mapScale={scale} hideStaircaseLabels staircaseEventsOverride={[]} />
+              <NavigationEndpoints
+                path={path}
+                startName={startName}
+                destName={destName}
+                stairEvents={stairEvents}
+                mapScale={scale}
+              />
+            </div>
+          ) : null
         )}
-        {loaded && path && path.length >= 2 && (
-          <div className="absolute inset-0">
-            <NavigationOverlay path={path} isMobile={isMobile} hideStaircaseLabels staircaseEventsOverride={[]} />
-          </div>
-        )}
-        {loaded && path && path.length >= 2 && (
-          <NavigationEndpoints
-            path={path}
-            startName={startName}
-            destName={destName}
-            stairEvents={stairEvents}
-          />
-        )}
-      </div>
+      </ZoomableFloorPlan>
       <div
         className="flex items-center justify-center gap-2 py-2"
         style={{
@@ -540,10 +523,11 @@ function NavigatingFloorPlan({
   )
 }
 
-function NavigationEndpoints({ path, startName, destName, stairEvents = [] }: { path: NavigationNode[]; startName?: string | null; destName?: string | null; stairEvents?: { label: string; x: number; y: number }[] }) {
+function NavigationEndpoints({ path, startName, destName, stairEvents = [], mapScale = 1 }: { path: NavigationNode[]; startName?: string | null; destName?: string | null; stairEvents?: { label: string; x: number; y: number }[]; mapScale?: number }) {
   if (path.length < 2) return null
   const first = path[0]
   const last = path[path.length - 1]
+  const cs = mapScale > 1 ? 1 / mapScale : 1
 
   const showStart = startName !== null
   const showDest = destName !== null
@@ -570,7 +554,7 @@ function NavigationEndpoints({ path, startName, destName, stairEvents = [] }: { 
       {showStart && !startAtStair && (
         <div
           className="absolute pointer-events-none"
-          style={{ left: `${first.x}%`, top: `${first.y}%`, transform: 'translate(-50%, -130%)', zIndex: 12, ...glassStyle, color: '#16A34A' }}
+          style={{ left: `${first.x}%`, top: `${first.y}%`, transform: `translate(-50%, -130%) scale(${cs})`, transformOrigin: 'center bottom', zIndex: 12, ...glassStyle, color: '#16A34A' }}
         >
           <div className="flex items-center gap-1.5">
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', border: '1.5px solid rgba(255,255,255,0.9)' }} />
@@ -581,7 +565,7 @@ function NavigationEndpoints({ path, startName, destName, stairEvents = [] }: { 
       {showDest && !destAtStair && (
         <div
           className="absolute pointer-events-none"
-          style={{ left: `${last.x}%`, top: `${last.y}%`, transform: 'translate(-50%, -130%)', zIndex: 12, ...glassStyle, color: '#B394BF' }}
+          style={{ left: `${last.x}%`, top: `${last.y}%`, transform: `translate(-50%, -130%) scale(${cs})`, transformOrigin: 'center bottom', zIndex: 12, ...glassStyle, color: '#B394BF' }}
         >
           <div className="flex items-center gap-1.5">
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#B394BF', border: '1.5px solid rgba(255,255,255,0.9)' }} />
@@ -593,7 +577,7 @@ function NavigationEndpoints({ path, startName, destName, stairEvents = [] }: { 
         <div
           key={`stair-${i}`}
           className="absolute pointer-events-none"
-          style={{ left: `${s.x}%`, top: `${s.y}%`, transform: 'translate(-50%, 30%)', zIndex: 13, ...glassStyle, color: '#E65100', background: 'rgba(255,237,213,0.9)', border: '1px solid rgba(251,146,60,0.3)' }}
+          style={{ left: `${s.x}%`, top: `${s.y}%`, transform: `translate(-50%, 30%) scale(${cs})`, transformOrigin: 'center top', zIndex: 13, ...glassStyle, color: '#E65100', background: 'rgba(255,237,213,0.9)', border: '1px solid rgba(251,146,60,0.3)' }}
         >
           {s.label}
         </div>

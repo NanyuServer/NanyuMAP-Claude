@@ -109,15 +109,15 @@ export default function DestinationCard({ destination, inline = false }: Destina
           }}
         />
 
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} mode="wait">
         {collapsed ? (
           /* ── 收起态 ── */
           <motion.div
             key="collapsed"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.3, ease: CUBIC_BEZIER }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: CUBIC_BEZIER }}
           >
           <div className="p-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -148,10 +148,10 @@ export default function DestinationCard({ destination, inline = false }: Destina
           /* ── 展开态 ── */
           <motion.div
             key="expanded"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.3, ease: CUBIC_BEZIER }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: CUBIC_BEZIER }}
           >
           <div className="p-4">
             <div className="flex items-center gap-2 mb-2">
