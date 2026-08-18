@@ -287,25 +287,39 @@ export default function CampusMap({ initialLocations }: Props): JSX.Element {
     maxX = Math.min(100, maxX + padding)
     minY = Math.max(0, minY - padding)
     maxY = Math.min(100, maxY + padding)
-    const el = mapContainerRef.current
-    if (!el) return
-    const containerW = el.clientWidth
-    const containerH = el.clientHeight
     const rangeX = maxX - minX
     const rangeY = maxY - minY
     if (rangeX < 1 || rangeY < 1) return
-    const mapAspect = MAP_ASPECT[campus] ?? 1.55
-    const mapHpx = containerW / mapAspect
-    const scaleX = 100 / rangeX
-    const scaleY = (containerH / mapHpx) * (100 / rangeY)
-    const fitScale = Math.min(scaleX, scaleY, maxScale)
-    const ms = computeMinScale()
-    const newScale = Math.max(fitScale, ms)
-    const centerPxX = (minX + maxX) / 2 / 100 * containerW
-    const centerPxY = (minY + maxY) / 2 / 100 * mapHpx
-    const newOffsetX = containerW / 2 - centerPxX * newScale
-    const newOffsetY = containerH / 2 - centerPxY * newScale
-    commitTransform(newScale, clampOffset(newOffsetX, newOffsetY, newScale))
+
+    // 用 requestAnimationFrame 确保容器已完成布局后再计算
+    let raf = 0
+    let retries = 0
+    const apply = () => {
+      const el = mapContainerRef.current
+      if (!el) return
+      const containerW = el.clientWidth
+      const containerH = el.clientHeight
+      if ((containerW === 0 || containerH === 0) && retries < 5) {
+        retries++
+        raf = requestAnimationFrame(apply)
+        return
+      }
+      if (containerW === 0 || containerH === 0) return
+      const mapAspect = MAP_ASPECT[campus] ?? 1.55
+      const mapHpx = containerW / mapAspect
+      const scaleX = 100 / rangeX
+      const scaleY = (containerH / mapHpx) * (100 / rangeY)
+      const fitScale = Math.min(scaleX, scaleY, maxScale)
+      const ms = computeMinScale()
+      const newScale = Math.max(fitScale, ms)
+      const centerPxX = (minX + maxX) / 2 / 100 * containerW
+      const centerPxY = (minY + maxY) / 2 / 100 * mapHpx
+      const newOffsetX = containerW / 2 - centerPxX * newScale
+      const newOffsetY = containerH / 2 - centerPxY * newScale
+      commitTransform(newScale, clampOffset(newOffsetX, newOffsetY, newScale))
+    }
+    raf = requestAnimationFrame(apply)
+    return () => cancelAnimationFrame(raf)
   }, [navigation.isNavigating, navigation.path, campus, computeMinScale, clampOffset, maxScale])
 
   const handlePickStart = useCallback(async (percentX: number, percentY: number) => {
@@ -385,7 +399,7 @@ export default function CampusMap({ initialLocations }: Props): JSX.Element {
           <AboutScreen />
         ) : campus === 'senior' && !isLoading ? (
           /* Senior campus: dedicated view, no junior map structure */
-          <div className="w-full h-full flex flex-col">
+          <div className="w-full h-full flex flex-col relative">
             <div className="flex-1 w-full overflow-y-auto px-4 py-4 md:px-6" style={{ scrollbarWidth: 'thin', paddingTop: isMobile ? 72 : 24 }}>
               <div className="w-full max-w-7xl mx-auto">
                 <SeniorCampusView
@@ -396,6 +410,11 @@ export default function CampusMap({ initialLocations }: Props): JSX.Element {
                 />
               </div>
             </div>
+            {navigation.isNavigating && navigation.destination && (
+              <div className={isMobile ? "absolute left-3 right-3 z-40" : "absolute bottom-4 right-4 md:bottom-6 md:right-6 z-40 w-80"} style={isMobile ? { bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' } : undefined}>
+                <DestinationCard destination={navigation.destination} inline={isMobile} />
+              </div>
+            )}
           </div>
         ) : (
           /* Junior campus: normal map */

@@ -112,7 +112,7 @@ export default function ZoomableFloorPlan({ src, alt, children, onLoaded }: Prop
     <div
       ref={wrapRef}
       className="relative"
-      style={{ touchAction: 'none', cursor: 'grab', userSelect: 'none', WebkitUserSelect: 'none', overflow: 'visible' }}
+      style={{ touchAction: 'none', cursor: 'grab', userSelect: 'none', WebkitUserSelect: 'none', overflow: 'hidden', borderRadius: 16 }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endPointer}
@@ -130,7 +130,7 @@ export default function ZoomableFloorPlan({ src, alt, children, onLoaded }: Prop
           src={src}
           alt={alt}
           className="block"
-          style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', WebkitUserSelect: 'none', pointerEvents: 'none', touchAction: 'none', WebkitTouchCallout: 'none', borderRadius: 16 }}
+          style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', WebkitUserSelect: 'none', pointerEvents: 'none', touchAction: 'none', WebkitTouchCallout: 'none' }}
           draggable={false}
           onLoad={() => { setLoaded(true); onLoaded?.() }}
         />

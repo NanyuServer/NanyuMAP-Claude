@@ -2,7 +2,7 @@
 // src/components/map/DestinationCard.tsx
 import { useMemo, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapPin, Flag, Navigation, X, Timer } from 'lucide-react'
+import { MapPin, Flag, Navigation, X, Timer, AlertTriangle } from 'lucide-react'
 import { useMapStore } from '@/store/mapStore'
 import type { SearchResult } from '@/types'
 
@@ -32,9 +32,8 @@ function formatMinutes(minutes: number): string {
 
 export default function DestinationCard({ destination, inline = false }: DestinationCardProps) {
   const { navigation, clearNavigation, locations, campus } = useMapStore()
-  const { start, visitWaypoints } = navigation
+  const { start, visitWaypoints, staircaseEvents } = navigation
   const [metersPerPx, setMetersPerPx] = useState<number | null>(null)
-  // 收起态：只显示目的地，占用更小面积
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
@@ -80,6 +79,19 @@ export default function DestinationCard({ destination, inline = false }: Destina
     return formatMinutes(minutes)
   }, [metersPerPx, navigation.totalDistance, campus])
 
+  // 检测是否涉及跨楼层导航（初中 0↔1 不算）
+  const isCrossFloor = useMemo(() => {
+    if (!staircaseEvents || staircaseEvents.length === 0) return false
+    return staircaseEvents.some(e => {
+      if (campus === 'junior') {
+        const floors = [e.fromFloor, e.toFloor].sort((a, b) => a - b)
+        if (floors[0] === 0 && floors[1] === 1) return false
+        return true
+      }
+      return true
+    })
+  }, [staircaseEvents, campus])
+
   return (
     <motion.div
       initial={{ y: 80, opacity: 0 }}
@@ -111,13 +123,14 @@ export default function DestinationCard({ destination, inline = false }: Destina
 
         <AnimatePresence initial={false} mode="wait">
         {collapsed ? (
-          /* ── 收起态 ── */
+          /* ── 收起态：向下收起 ── */
           <motion.div
             key="collapsed"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.25, ease: CUBIC_BEZIER }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: CUBIC_BEZIER }}
+            style={{ overflow: 'hidden' }}
           >
           <div className="p-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -145,13 +158,14 @@ export default function DestinationCard({ destination, inline = false }: Destina
           </div>
           </motion.div>
         ) : (
-          /* ── 展开态 ── */
+          /* ── 展开态：向上展开 ── */
           <motion.div
             key="expanded"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.25, ease: CUBIC_BEZIER }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: CUBIC_BEZIER }}
+            style={{ overflow: 'hidden' }}
           >
           <div className="p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -188,7 +202,6 @@ export default function DestinationCard({ destination, inline = false }: Destina
               </div>
             </div>
 
-            {/* Estimated time of arrival */}
             {eta && (
               <div className="mb-3 flex items-center gap-1.5 px-1">
                 <Timer size={12} className="text-ink/40" />
@@ -197,7 +210,6 @@ export default function DestinationCard({ destination, inline = false }: Destina
               </div>
             )}
 
-            {/* Waypoints */}
             {visitWaypoints.length > 0 && (
               <div className="mb-3 px-1">
                 <div className="text-neutral-400 text-[10px] font-medium mb-1.5">途经点</div>
@@ -209,6 +221,14 @@ export default function DestinationCard({ destination, inline = false }: Destina
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* 跨楼层提示 */}
+            {isCrossFloor && (
+              <div className="mb-3 flex items-start gap-2 p-2.5 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <AlertTriangle size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <span className="text-amber-700 text-[11px] font-semibold leading-relaxed">本次导航路线涉及跨楼层，请您以地点标注的实际楼层为主，导航显示的楼层引导仅供参考</span>
               </div>
             )}
 
@@ -236,7 +256,6 @@ export default function DestinationCard({ destination, inline = false }: Destina
               </div>
             </div>
 
-            {/* 操作行：结束导航（主题强调色）+ 收起 */}
             <div className="flex items-center gap-2 mt-3">
               <button
                 onClick={clearNavigation}
