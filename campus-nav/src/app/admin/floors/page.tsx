@@ -854,6 +854,17 @@ export default function FloorsPage(): JSX.Element {
                     }} className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500/20 text-xs">
                       <Trash2 size={12} />清除旧数据
                     </button>
+                    <button onClick={async () => {
+                      if (!confirm('将清理旧的楼梯节点和路径，然后用新规则重建所有楼梯井的节点和跨层连接。确定继续？')) return
+                      try {
+                        await postRoads('cleanup_stairwell_nodes', { campus: 'senior' })
+                        const r = await postRoads('fix_stairwell_nodes', { campus: 'senior' })
+                        alert(`重建完成！创建 ${r.created?.length ?? 0} 个节点，${r.edgesCreated ?? 0} 条边`)
+                        fetchRoads()
+                      } catch (e) { alert('重建失败：' + (e instanceof Error ? e.message : String(e))) }
+                    }} className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 text-xs font-medium">
+                      <RefreshCcw size={12} />重建楼梯节点
+                    </button>
                   </div>
                 </div>
 
