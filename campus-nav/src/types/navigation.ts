@@ -34,6 +34,8 @@ export interface StaircaseEvent {
   toFloor: number
   buildingCategory?: string | null
   roadType?: string | null
+  fromX?: number
+  fromY?: number
 }
 
 export interface NavigationPathResult {

@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
 
     let pathNodes: NavigationNode[]
     let totalDistance: number
-    let staircaseEvents: Array<{ nodeId: number; x: number; y: number; fromFloor: number; toFloor: number; buildingCategory?: string | null; roadType?: string | null }> = []
+    let staircaseEvents: Array<{ nodeId: number; x: number; y: number; fromFloor: number; toFloor: number; buildingCategory?: string | null; roadType?: string | null; fromX?: number; fromY?: number }> = []
 
     let preferredStairNodeId: number | undefined
     const trunkStairwellIds = new Set<number>()
@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
       totalDistance = 0
       for (let i = 1; i < pathNodes.length; i++) { const dx = pathNodes[i].x - pathNodes[i - 1].x; const dy = pathNodes[i].y - pathNodes[i - 1].y; totalDistance += Math.sqrt(dx * dx + dy * dy) }
     } else {
-      let result: { nodes: NavigationNode[]; totalDistance: number; staircaseEvents?: Array<{ nodeId: number; x: number; y: number; fromFloor: number; toFloor: number; buildingCategory?: string | null; roadType?: string | null }> } | null = null
+      let result: { nodes: NavigationNode[]; totalDistance: number; staircaseEvents?: Array<{ nodeId: number; x: number; y: number; fromFloor: number; toFloor: number; buildingCategory?: string | null; roadType?: string | null; fromX?: number; fromY?: number }> } | null = null
       if (destFloor != null && destFloor !== startFloor) {
         result = astarFloorAware(nodes, adjustedEdges, startNodeId, endNodeId, startFloor, destFloor, destBuildingCategory, preferredStairNodeId, campusFilter === 'senior', isTrunkMode ? trunkStairwellIds : undefined, stairwellWeightMap)
         if (!result && campusFilter === 'senior') {
@@ -298,7 +298,7 @@ export async function POST(req: NextRequest) {
       const normalStart = findNearestEdgeEndpoint(nodes, normalEdges, startCoords.x, startCoords.y, snapFloor ? startFloor : null)
       const normalEnd = findNearestEdgeEndpoint(nodes, normalEdges, destination.x, destination.y, snapFloor ? destFloor : null)
       if (normalStart && normalEnd) {
-        let normalResult: { nodes: NavigationNode[]; totalDistance: number; staircaseEvents?: Array<{ nodeId: number; x: number; y: number; fromFloor: number; toFloor: number; buildingCategory?: string | null; roadType?: string | null }> } | null = null
+        let normalResult: { nodes: NavigationNode[]; totalDistance: number; staircaseEvents?: Array<{ nodeId: number; x: number; y: number; fromFloor: number; toFloor: number; buildingCategory?: string | null; roadType?: string | null; fromX?: number; fromY?: number }> } | null = null
         if (destFloor != null && destFloor !== startFloor) {
           normalResult = astarFloorAware(nodes, normalEdges, normalStart.nearestEndpointId, normalEnd.nearestEndpointId, startFloor, destFloor, destBuildingCategory, preferredStairNodeId)
         }

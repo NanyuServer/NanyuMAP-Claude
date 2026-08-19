@@ -348,7 +348,8 @@ export function astarFloorAware(
           const toF = node.floor
           const bCat = node.transitionInfo?.buildingCategory || rn.buildingCategory || null
           const rType = node.transitionInfo?.roadType || ''
-          staircaseEvents.unshift({ nodeId: node.nid, x: rn.x, y: rn.y, fromFloor: fromF, toFloor: toF, buildingCategory: bCat, roadType: rType })
+          const parentRn = nodeMap.get(node.parent.nid)
+          staircaseEvents.unshift({ nodeId: node.nid, x: rn.x, y: rn.y, fromFloor: fromF, toFloor: toF, buildingCategory: bCat, roadType: rType, fromX: parentRn?.x, fromY: parentRn?.y })
         }
         node = node.parent
       }

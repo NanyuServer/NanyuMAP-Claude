@@ -393,7 +393,7 @@ function NavigatingLayout({
     path: NavigationNode[]
     start: any
     destination: any
-    staircaseEvents: { nodeId: number; x: number; y: number; fromFloor: number; toFloor: number }[]
+    staircaseEvents: { nodeId: number; x: number; y: number; fromFloor: number; toFloor: number; fromX?: number; fromY?: number }[]
   }
 }) {
   const startName = navigation.start?.type === 'category' ? navigation.start.value : undefined
@@ -419,8 +419,8 @@ function NavigatingLayout({
         if (exitEvt) {
           stairEvents.push({
             label: exitEvt.toFloor > exitEvt.fromFloor ? `上${exitEvt.toFloor}楼` : `下${exitEvt.toFloor}楼`,
-            x: exitEvt.x,
-            y: exitEvt.y,
+            x: exitEvt.fromX ?? exitEvt.x,
+            y: exitEvt.fromY ?? exitEvt.y,
           })
         }
         const entryEvt = events.find(e => e.toFloor === floor && e.fromFloor !== floor)
