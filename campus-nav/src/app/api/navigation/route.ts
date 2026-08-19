@@ -203,7 +203,9 @@ export async function POST(req: NextRequest) {
       let bestScore = Infinity
       for (const n of nodes) {
         if (!n.stairwellId) continue
-        if (n.stairwellRole !== 'entry' && n.stairwellRole !== 'center') continue
+        // entry/entry1/entry2/center 都是有效的楼梯入口节点
+        const role = n.stairwellRole || ''
+        if (role !== 'entry' && role !== 'entry1' && role !== 'entry2' && role !== 'center') continue
         const distFromStart = Math.sqrt((n.x - startCoords.x) ** 2 + (n.y - startCoords.y) ** 2)
         const distFromEnd = Math.sqrt((n.x - destination.x) ** 2 + (n.y - destination.y) ** 2)
         const stairCat = n.buildingCategory || null
