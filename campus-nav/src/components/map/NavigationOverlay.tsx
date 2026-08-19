@@ -141,7 +141,7 @@ export default function NavigationOverlay({ path, isMobile = false, mapScale = 1
 
   // 检测标签位置是否与路线重叠
   const overlapsRoute = (px: number, py: number): boolean => {
-    const THRESHOLD = 3
+    const THRESHOLD = 5
     for (let i = 0; i < path.length - 1; i++) {
       const a = path[i], b = path[i + 1]
       const abx = b.x - a.x, aby = b.y - a.y
@@ -211,7 +211,7 @@ export default function NavigationOverlay({ path, isMobile = false, mapScale = 1
       {!hideStaircaseLabels && staircaseEvents.map((evt, i) => {
         const offset = labelPositions[i]
         const routeOverlap = overlapsRoute(evt.x, evt.y)
-        const offsetPx = (routeOverlap || isMobile) ? 52 : 46
+        const offsetPx = (routeOverlap || isMobile) ? 60 : 50
         const angle = Math.atan2(offset.normalY, offset.normalX) * 180 / Math.PI
         const label = getFloorLabel(evt)
 

@@ -428,8 +428,8 @@ export default function CampusMap({ initialLocations }: Props): JSX.Element {
                 <div className="w-full h-full overflow-y-auto" style={{ scrollbarWidth: 'thin', cursor: selectingStart ? 'crosshair' : undefined }}>
                   <div className="flex flex-col w-full" style={{ minHeight: '100%' }}>
                     <div className="relative w-full flex-shrink-0" onClick={handleDesktopPick} style={{ aspectRatio: `${aspect}`, margin: 'auto', cursor: selectingStart ? 'crosshair' : undefined }}>
-                    <div className="absolute inset-0 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.06)', backgroundColor: '#f5f5f7' }}>
-                      <img src={mapSrc} alt="Campus Map" className="w-full h-full" style={{ objectFit: 'fill' }} draggable={false} onContextMenu={e => e.preventDefault()} />
+                    <div className="absolute inset-0 rounded-2xl" style={{ border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.06)', backgroundColor: '#f5f5f7' }}>
+                      <img src={mapSrc} alt="Campus Map" className="w-full h-full" style={{ objectFit: 'fill', borderRadius: 16 }} draggable={false} onContextMenu={e => e.preventDefault()} />
                       <div className="absolute inset-0">
                         <AnimatePresence>
                           {!isLoading && !navigation.isNavigating && primaryLocations.map(loc => (
