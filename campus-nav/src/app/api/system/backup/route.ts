@@ -7,16 +7,22 @@ export async function GET() {
   try {
     await requireAdmin()
 
-    const [locations, roadNodes, roadEdges, categories, systemSettings] = await Promise.all([
-      prisma.location.findMany(),
-      prisma.roadNode.findMany(),
-      prisma.roadEdge.findMany(),
-      prisma.category.findMany(),
-      prisma.systemSetting.findMany(),
+    const [locations, roadNodes, roadEdges, categories, systemSettings, stairwells, stairwellFloors, feedbacks, visitRoutes, floorMarkers, adminUsers] = await Promise.all([
+      prisma.$queryRaw`SELECT * FROM locations ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM road_nodes ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM road_edges ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM categories ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM system_settings ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM stairwells ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM stairwell_floors ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM feedbacks ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM visit_routes ORDER BY id`,
+      prisma.$queryRaw`SELECT * FROM floor_markers ORDER BY id`,
+      prisma.$queryRaw`SELECT id, username FROM admin_users ORDER BY id`,
     ])
 
     const backup = {
-      version: '1.0',
+      version: '2.0',
       timestamp: new Date().toISOString(),
       data: {
         locations,
@@ -24,6 +30,12 @@ export async function GET() {
         roadEdges,
         categories,
         systemSettings,
+        stairwells,
+        stairwellFloors,
+        feedbacks,
+        visitRoutes,
+        floorMarkers,
+        adminUsers,
       },
     }
 
@@ -35,9 +47,10 @@ export async function GET() {
       },
     })
   } catch (error) {
+    console.error('Backup error:', error)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    return NextResponse.json({ error: '备份失败' }, { status: 500 })
+    return NextResponse.json({ error: `备份失败: ${error instanceof Error ? error.message : String(error)}` }, { status: 500 })
   }
 }
